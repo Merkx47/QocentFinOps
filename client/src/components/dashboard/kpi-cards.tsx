@@ -92,9 +92,9 @@ function KPICard({
 }
 
 export function KPICards() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="kpi-cards-grid">
@@ -136,9 +136,9 @@ export function KPICards() {
 }
 
 export function SecondaryKPIs() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

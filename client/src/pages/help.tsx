@@ -20,12 +20,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const faqs = [
   {
-    question: 'How do I connect my Huawei Cloud account?',
-    answer: 'Navigate to Settings > API Keys and enter your Huawei Cloud Access Key (AK), Secret Key (SK), and Project ID. These credentials can be found in your Huawei Cloud IAM console.',
+    question: 'How do I connect my cloud provider account?',
+    answer: 'Navigate to Settings > API Keys and enter your cloud provider credentials (Access Key, Secret Key, and Project/Account ID). These can be found in your provider\'s IAM console.',
+  },
+  {
+    question: 'Which cloud providers are supported?',
+    answer: 'The platform supports AWS, Microsoft Azure, Google Cloud Platform (GCP), and Huawei Cloud. Select your provider on the login screen to get started.',
   },
   {
     question: 'How often is cost data updated?',
-    answer: 'Cost data is synchronized daily from Huawei Cloud BSS APIs. Resource utilization metrics are updated hourly via Cloud Eye integration.',
+    answer: 'Cost data is synchronized daily from your cloud provider\'s billing APIs. Resource utilization metrics are updated hourly via provider monitoring services.',
   },
   {
     question: 'Can I set up budget alerts?',
@@ -76,7 +80,7 @@ export default function Help() {
           {[
             { icon: BookOpen, title: 'Documentation', desc: 'Read the full docs' },
             { icon: MessageCircle, title: 'Live Chat', desc: 'Talk to our team' },
-            { icon: Mail, title: 'Email Support', desc: 'support@huaweicloud.com' },
+            { icon: Mail, title: 'Email Support', desc: 'support@finops.cloud' },
           ].map((item, i) => (
             <motion.div
               key={item.title}

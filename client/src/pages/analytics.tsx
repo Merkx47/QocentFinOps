@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateCostTrend, generateServiceBreakdown, generateRegionBreakdown, generateKPIs } from '@/lib/mock-data';
-import { serviceInfo, regionNames } from '@shared/schema';
+import { getServiceInfo, getRegionNames } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import {
   AreaChart,
@@ -41,12 +41,15 @@ const CHART_COLORS = [
 ];
 
 export default function Analytics() {
-  const { currency, selectedTenantId, dateRange } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
   
-  const costTrend = useMemo(() => generateCostTrend(selectedTenantId), [selectedTenantId]);
-  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
-  const regionBreakdown = useMemo(() => generateRegionBreakdown(selectedTenantId), [selectedTenantId]);
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const regionNames = useMemo(() => getRegionNames(selectedProvider), [selectedProvider]);
+
+  const costTrend = useMemo(() => generateCostTrend(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const regionBreakdown = useMemo(() => generateRegionBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -343,7 +346,7 @@ export default function Analytics() {
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                           <XAxis 
                             dataKey="region"
-                            tickFormatter={(value) => regionNames[value as keyof typeof regionNames]?.split('-')[0] || value}
+                            tickFormatter={(value) => regionNames[value]?.split('-')[0] || value}
                             tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                             angle={-45}
                             textAnchor="end"
@@ -355,7 +358,7 @@ export default function Analytics() {
                           />
                           <Tooltip 
                             formatter={(value: number) => formatCurrency(value, currency)}
-                            labelFormatter={(label) => regionNames[label as keyof typeof regionNames] || label}
+                            labelFormatter={(label) => regionNames[label] || label}
                           />
                           <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={40} />
                         </BarChart>

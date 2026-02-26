@@ -175,9 +175,9 @@ export default function Settings() {
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
                     <Key className="h-5 w-5 text-primary" />
-                    Huawei Cloud API Credentials
+                    Cloud API Credentials
                   </CardTitle>
-                  <CardDescription>Connect to Huawei Cloud for live data</CardDescription>
+                  <CardDescription>Connect to your cloud provider for live data</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -192,7 +192,7 @@ export default function Settings() {
                     <Label htmlFor="projectId">Project ID</Label>
                     <Input id="projectId" placeholder="Enter your project ID" />
                   </div>
-                  <Button>Connect to Huawei Cloud</Button>
+                  <Button>Connect to Cloud Provider</Button>
                 </CardContent>
               </Card>
             </motion.div>

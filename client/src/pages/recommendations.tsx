@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/select';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateRecommendations } from '@/lib/mock-data';
-import { serviceInfo, type RecommendationType, type RecommendationImpact } from '@shared/schema';
+import { getServiceInfo } from '@/lib/provider-config';
+import type { RecommendationType, RecommendationImpact } from '@shared/schema';
 import { useMemo, useState } from 'react';
 import { 
   Lightbulb,
@@ -33,22 +34,42 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const typeIcons: Record<RecommendationType, typeof Server> = {
+const typeIcons: Record<string, typeof Server> = {
   rightsizing: Gauge,
   idle_resource: Server,
   reserved_instance: Database,
   storage_optimization: HardDrive,
   network_optimization: Network,
   database_tuning: Database,
+  savings_plans: Database,
+  ebs_optimization: HardDrive,
+  hybrid_benefit: Server,
+  spot_vms: Server,
+  committed_use_discount: Database,
+  committed_use: Database,
+  sustained_use: Gauge,
+  preemptible_vms: Server,
+  gcp_cud: Database,
+  ri_conversion: Database,
 };
 
-const typeLabels: Record<RecommendationType, string> = {
+const typeLabels: Record<string, string> = {
   rightsizing: 'Rightsizing',
   idle_resource: 'Idle Resource',
   reserved_instance: 'Reserved Instance',
   storage_optimization: 'Storage Optimization',
   network_optimization: 'Network Optimization',
   database_tuning: 'Database Tuning',
+  savings_plans: 'Savings Plan',
+  ebs_optimization: 'EBS',
+  hybrid_benefit: 'Hybrid Benefit',
+  spot_vms: 'Spot VMs',
+  committed_use_discount: 'CUD',
+  committed_use: 'CUD',
+  sustained_use: 'Sustained Use',
+  preemptible_vms: 'Preemptible',
+  gcp_cud: 'CUD',
+  ri_conversion: 'RI Conversion',
 };
 
 const impactColors: Record<RecommendationImpact, { bg: string; text: string; border: string }> = {
@@ -65,11 +86,13 @@ const statusInfo = {
 };
 
 export default function Recommendations() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [impactFilter, setImpactFilter] = useState<string>('all');
   
-  const recommendations = useMemo(() => generateRecommendations(selectedTenantId), [selectedTenantId]);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+
+  const recommendations = useMemo(() => generateRecommendations(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   
   const filteredRecommendations = useMemo(() => {
     return recommendations.filter(r => {
@@ -161,7 +184,7 @@ export default function Recommendations() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {(Object.entries(byType) as [RecommendationType, { count: number; savings: number }][]).map(([type, data]) => {
-                  const Icon = typeIcons[type];
+                  const Icon = typeIcons[type] || Server;
                   return (
                     <div 
                       key={type}
@@ -174,7 +197,7 @@ export default function Recommendations() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <Icon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">{typeLabels[type]}</span>
+                          <span className="text-sm font-medium">{typeLabels[type] || type}</span>
                         </div>
                         <Badge variant="secondary" className="text-xs">{data.count}</Badge>
                       </div>
@@ -226,7 +249,7 @@ export default function Recommendations() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {filteredRecommendations.map((rec, index) => {
-                  const Icon = typeIcons[rec.type];
+                  const Icon = typeIcons[rec.type] || Server;
                   const StatusIcon = statusInfo[rec.status].icon;
                   const impact = impactColors[rec.impact];
                   

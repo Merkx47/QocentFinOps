@@ -125,8 +125,8 @@ export interface Tenant {
 export interface CostRecord {
   id: string;
   tenantId: string;
-  service: HuaweiService;
-  region: HuaweiRegion;
+  service: string;
+  region: string;
   date: string;
   amount: number;
   resourceCount: number;
@@ -138,8 +138,8 @@ export interface Resource {
   id: string;
   tenantId: string;
   name: string;
-  service: HuaweiService;
-  region: HuaweiRegion;
+  service: string;
+  region: string;
   type: string;
   status: 'running' | 'stopped' | 'terminated';
   cpuUtilization: number;
@@ -151,13 +151,7 @@ export interface Resource {
 }
 
 // Recommendation type
-export type RecommendationType = 
-  | 'rightsizing'
-  | 'idle_resource'
-  | 'reserved_instance'
-  | 'storage_optimization'
-  | 'network_optimization'
-  | 'database_tuning';
+export type RecommendationType = string;
 
 export type RecommendationImpact = 'high' | 'medium' | 'low';
 
@@ -169,7 +163,7 @@ export interface Recommendation {
   description: string;
   resourceId: string;
   resourceName: string;
-  service: HuaweiService;
+  service: string;
   currentCost: number;
   projectedSavings: number;
   impact: RecommendationImpact;
@@ -200,7 +194,7 @@ export interface CostTrendPoint {
 
 // Service breakdown
 export interface ServiceBreakdown {
-  service: HuaweiService;
+  service: string;
   cost: number;
   percentage: number;
   trend: number;
@@ -209,7 +203,7 @@ export interface ServiceBreakdown {
 
 // Region breakdown
 export interface RegionBreakdown {
-  region: HuaweiRegion;
+  region: string;
   cost: number;
   percentage: number;
   resourceCount: number;
@@ -221,7 +215,17 @@ export interface TenantSummary {
   totalSpend: number;
   budgetUsage: number;
   efficiencyScore: number;
-  topService: HuaweiService;
+  topService: string;
+  recommendationCount: number;
+}
+
+// OrgUnit summary for multi-provider comparison
+export interface OrgUnitSummary {
+  orgUnit: { id: string; name: string; description: string; environment: string; budget: number; efficiencyScore: number; status: string };
+  totalSpend: number;
+  budgetUsage: number;
+  efficiencyScore: number;
+  topService: string;
   recommendationCount: number;
 }
 
@@ -238,8 +242,8 @@ export interface DateRange {
 export interface FilterState {
   tenantId: string | 'all';
   dateRange: DateRange;
-  services: HuaweiService[];
-  regions: HuaweiRegion[];
+  services: string[];
+  regions: string[];
   currency: Currency;
 }
 

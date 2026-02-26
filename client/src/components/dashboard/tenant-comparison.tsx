@@ -3,8 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateTenantSummaries, mockTenants } from '@/lib/mock-data';
-import { serviceInfo } from '@shared/schema';
+import { generateOrgUnitSummaries, getOrgUnits } from '@/lib/mock-data';
+import { getServiceInfo, getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import { 
   Users,
@@ -19,9 +19,11 @@ import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
 export function TenantComparison() {
-  const { currency, setSelectedTenantId } = useFinOpsStore();
+  const { currency, setSelectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const summaries = useMemo(() => generateTenantSummaries(), []);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const providerConfig = useMemo(() => getProviderConfig(selectedProvider), [selectedProvider]);
+  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
   const topTenants = summaries.sort((a, b) => b.totalSpend - a.totalSpend).slice(0, 5);
   const maxSpend = Math.max(...topTenants.map(t => t.totalSpend));
 
@@ -36,10 +38,10 @@ export function TenantComparison() {
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              Tenant Comparison
+              {providerConfig.hierarchy.comparisonTitle}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Top 5 tenants by spend
+              Top 5 {providerConfig.hierarchy.orgUnitLabelPlural.toLowerCase()} by spend
             </p>
           </div>
           <Link href="/tenants">
@@ -53,7 +55,7 @@ export function TenantComparison() {
           <div className="space-y-4" data-testid="tenant-comparison-list">
             {topTenants.map((summary, index) => (
               <motion.div
-                key={summary.tenant.id}
+                key={summary.orgUnit.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.05 * index }}
@@ -61,8 +63,8 @@ export function TenantComparison() {
               >
                 <div 
                   className="p-3 rounded-lg border border-border bg-background/50 hover-elevate cursor-pointer"
-                  onClick={() => setSelectedTenantId(summary.tenant.id)}
-                  data-testid={`tenant-card-${summary.tenant.id}`}
+                  onClick={() => setSelectedOrgUnitId(summary.orgUnit.id)}
+                  data-testid={`org-unit-card-${summary.orgUnit.id}`}
                 >
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
@@ -70,11 +72,11 @@ export function TenantComparison() {
                         <Building2 className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-sm font-medium truncate">{summary.tenant.name}</h4>
+                        <h4 className="text-sm font-medium truncate">{summary.orgUnit.name}</h4>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{summary.tenant.industry}</span>
+                          <span>{summary.orgUnit.description}</span>
                           <span>-</span>
-                          <span>{summary.tenant.country}</span>
+                          <span>{summary.orgUnit.environment}</span>
                         </div>
                       </div>
                     </div>
@@ -132,7 +134,10 @@ export function TenantComparison() {
 }
 
 export function TenantStatsCard() {
-  const summaries = useMemo(() => generateTenantSummaries(), []);
+  const { selectedProvider } = useFinOpsStore();
+  const providerConfig = useMemo(() => getProviderConfig(selectedProvider), [selectedProvider]);
+  const orgUnits = useMemo(() => getOrgUnits(selectedProvider), [selectedProvider]);
+  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
   
   const avgEfficiency = summaries.reduce((sum, s) => sum + s.efficiencyScore, 0) / summaries.length;
   const totalRecommendations = summaries.reduce((sum, s) => sum + s.recommendationCount, 0);
@@ -142,8 +147,8 @@ export function TenantStatsCard() {
       <CardContent className="pt-6">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold font-mono">{mockTenants.length}</p>
-            <p className="text-xs text-muted-foreground mt-1">Active Tenants</p>
+            <p className="text-2xl font-bold font-mono">{orgUnits.length}</p>
+            <p className="text-xs text-muted-foreground mt-1">Active {providerConfig.hierarchy.orgUnitLabelPlural}</p>
           </div>
           <div>
             <p className="text-2xl font-bold font-mono">{avgEfficiency.toFixed(0)}%</p>

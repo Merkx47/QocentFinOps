@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateServiceBreakdown, generateTenantSummaries, mockTenants } from '@/lib/mock-data';
-import { serviceInfo } from '@shared/schema';
+import { generateServiceBreakdown, generateOrgUnitSummaries } from '@/lib/mock-data';
+import { getServiceInfo, getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import {
   Treemap,
@@ -23,10 +23,13 @@ const COLORS = [
 ];
 
 export default function Allocation() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
-  const tenantSummaries = useMemo(() => generateTenantSummaries(), []);
+  const config = getProviderConfig(selectedProvider);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+
+  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const orgUnitSummaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
 
   const serviceTreemapData = serviceBreakdown.slice(0, 12).map((s, i) => ({
     name: s.service,
@@ -34,8 +37,8 @@ export default function Allocation() {
     fill: serviceInfo[s.service]?.color || COLORS[i % COLORS.length],
   }));
 
-  const tenantTreemapData = tenantSummaries.map((t, i) => ({
-    name: t.tenant.name,
+  const orgUnitTreemapData = orgUnitSummaries.map((t, i) => ({
+    name: t.orgUnit.name,
     size: t.totalSpend,
     fill: COLORS[i % COLORS.length],
   }));
@@ -64,7 +67,7 @@ export default function Allocation() {
         >
           <h1 className="text-2xl font-bold text-foreground">Cost Allocation</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visualize cost distribution across services and tenants
+            Visualize cost distribution across services and {config.hierarchy.orgUnitLabelPlural.toLowerCase()}
           </p>
         </motion.div>
 
@@ -141,7 +144,7 @@ export default function Allocation() {
             </Card>
           </motion.div>
 
-          {selectedTenantId === 'all' && (
+          {selectedOrgUnitId === 'all' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -151,14 +154,14 @@ export default function Allocation() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
                     <Users className="h-5 w-5 text-primary" />
-                    Allocation by Tenant
+                    Allocation by {config.hierarchy.orgUnitLabel}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <Treemap
-                        data={tenantTreemapData}
+                        data={orgUnitTreemapData}
                         dataKey="size"
                         aspectRatio={4/3}
                         stroke="hsl(var(--background))"
@@ -197,13 +200,13 @@ export default function Allocation() {
                     </ResponsiveContainer>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-                    {tenantSummaries.slice(0, 4).map((t, i) => (
+                    {orgUnitSummaries.slice(0, 4).map((t, i) => (
                       <Badge 
-                        key={t.tenant.id}
+                        key={t.orgUnit.id}
                         variant="secondary"
                         className="text-xs"
                       >
-                        {t.tenant.name}: {formatCompactCurrency(t.totalSpend, currency)}
+                        {t.orgUnit.name}: {formatCompactCurrency(t.totalSpend, currency)}
                       </Badge>
                     ))}
                   </div>

@@ -17,7 +17,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
+import { getProviderConfig } from '@/lib/provider-config';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useMemo } from 'react';
 
 interface NavItem {
   icon: typeof LayoutDashboard;
@@ -26,13 +28,20 @@ interface NavItem {
   badge?: number;
 }
 
-const mainNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Overview', href: '/' },
-  { icon: TrendingUp, label: 'Cost Analytics', href: '/analytics' },
-  { icon: Server, label: 'Resources', href: '/resources' },
-  { icon: Lightbulb, label: 'Recommendations', href: '/recommendations', badge: 10 },
-  { icon: Users, label: 'Tenants', href: '/tenants' },
-];
+function useNavItems() {
+  const { selectedProvider } = useFinOpsStore();
+  const config = getProviderConfig(selectedProvider);
+
+  const mainNavItems: NavItem[] = useMemo(() => [
+    { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
+    { icon: TrendingUp, label: 'Cost Analytics', href: '/analytics' },
+    { icon: Server, label: 'Resources', href: '/resources' },
+    { icon: Lightbulb, label: 'Recommendations', href: '/recommendations', badge: 10 },
+    { icon: Users, label: config.hierarchy.orgUnitLabelPlural, href: '/tenants' },
+  ], [config.hierarchy.orgUnitLabelPlural]);
+
+  return mainNavItems;
+}
 
 const secondaryNavItems: NavItem[] = [
   { icon: Target, label: 'Budgets', href: '/budgets' },
@@ -45,12 +54,12 @@ const bottomNavItems: NavItem[] = [
   { icon: HelpCircle, label: 'Help', href: '/help' },
 ];
 
-function NavLink({ 
-  item, 
+function NavLink({
+  item,
   isCollapsed,
-  isActive 
-}: { 
-  item: NavItem; 
+  isActive
+}: {
+  item: NavItem;
   isCollapsed: boolean;
   isActive: boolean;
 }) {
@@ -64,7 +73,6 @@ function NavLink({
             : "text-muted-foreground hover:text-foreground",
           isCollapsed && "justify-center px-2"
         )}
-        data-testid={`nav-link-${item.label.toLowerCase().replace(' ', '-')}`}
       >
         <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-primary-foreground")} />
         {!isCollapsed && (
@@ -101,6 +109,7 @@ function NavLink({
 export function Sidebar() {
   const [location] = useLocation();
   const { sidebarCollapsed, setSidebarCollapsed } = useFinOpsStore();
+  const mainNavItems = useNavItems();
 
   return (
     <aside
@@ -149,7 +158,7 @@ export function Sidebar() {
             isActive={location === item.href}
           />
         ))}
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -158,7 +167,6 @@ export function Sidebar() {
             !sidebarCollapsed && "justify-end"
           )}
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          data-testid="button-toggle-sidebar"
         >
           {sidebarCollapsed ? (
             <ChevronRight className="h-4 w-4" />

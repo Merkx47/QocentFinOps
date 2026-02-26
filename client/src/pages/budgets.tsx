@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { mockTenants, generateKPIs } from '@/lib/mock-data';
+import { getOrgUnits, generateKPIs } from '@/lib/mock-data';
 import { useMemo } from 'react';
 import { 
   Target,
@@ -18,32 +18,33 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Budgets() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
   const budgetData = useMemo(() => {
-    if (selectedTenantId === 'all') {
-      return mockTenants.map(tenant => {
-        const kpis = generateKPIs(tenant.id);
+    const orgUnits = getOrgUnits(selectedProvider);
+    if (selectedOrgUnitId === 'all') {
+      return orgUnits.map(unit => {
+        const kpis = generateKPIs(unit.id, selectedProvider);
         return {
-          id: tenant.id,
-          name: tenant.name,
-          budget: tenant.budget,
+          id: unit.id,
+          name: unit.name,
+          budget: unit.budget,
           spent: kpis.totalSpend,
           percentage: kpis.budgetUsed,
         };
       });
     }
-    const tenant = mockTenants.find(t => t.id === selectedTenantId);
-    if (!tenant) return [];
-    const kpis = generateKPIs(selectedTenantId);
+    const unit = orgUnits.find(u => u.id === selectedOrgUnitId);
+    if (!unit) return [];
+    const kpis = generateKPIs(selectedOrgUnitId, selectedProvider);
     return [{
-      id: tenant.id,
-      name: tenant.name,
-      budget: tenant.budget,
+      id: unit.id,
+      name: unit.name,
+      budget: unit.budget,
       spent: kpis.totalSpend,
       percentage: kpis.budgetUsed,
     }];
-  }, [selectedTenantId]);
+  }, [selectedOrgUnitId, selectedProvider]);
 
   const totalBudget = budgetData.reduce((sum, b) => sum + b.budget, 0);
   const totalSpent = budgetData.reduce((sum, b) => sum + b.spent, 0);

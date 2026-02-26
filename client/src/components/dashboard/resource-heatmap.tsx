@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
 import { generateResources } from '@/lib/mock-data';
-import { serviceInfo } from '@shared/schema';
+import { getServiceInfo } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import { 
   Activity,
@@ -35,9 +35,10 @@ const getUtilizationStatus = (value: number) => {
 };
 
 export function ResourceHeatmap() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const resources = useMemo(() => generateResources(selectedTenantId), [selectedTenantId]);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const resources = useMemo(() => generateResources(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   const displayedResources = resources.filter(r => r.status === 'running').slice(0, 24);
   
   const avgCpu = resources.reduce((sum, r) => sum + r.cpuUtilization, 0) / resources.length;

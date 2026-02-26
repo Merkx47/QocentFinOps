@@ -16,7 +16,7 @@ const mockReports = [
   { id: '1', name: 'Monthly Cost Summary', type: 'Cost Analysis', schedule: 'Monthly', lastRun: '2024-01-01' },
   { id: '2', name: 'Resource Utilization Report', type: 'Utilization', schedule: 'Weekly', lastRun: '2024-01-03' },
   { id: '3', name: 'Optimization Opportunities', type: 'Recommendations', schedule: 'Daily', lastRun: '2024-01-05' },
-  { id: '4', name: 'Tenant Cost Breakdown', type: 'Cost Allocation', schedule: 'Monthly', lastRun: '2024-01-01' },
+  { id: '4', name: 'Organization Cost Breakdown', type: 'Cost Allocation', schedule: 'Monthly', lastRun: '2024-01-01' },
   { id: '5', name: 'Budget vs Actual', type: 'Budget', schedule: 'Weekly', lastRun: '2024-01-04' },
 ];
 

@@ -3,7 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateRecommendations } from '@/lib/mock-data';
-import { serviceInfo, type RecommendationType, type RecommendationImpact } from '@shared/schema';
+import { getServiceInfo } from '@/lib/provider-config';
+import type { RecommendationType, RecommendationImpact } from '@shared/schema';
 import { useMemo } from 'react';
 import { 
   Lightbulb,
@@ -22,22 +23,42 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
-const typeIcons: Record<RecommendationType, typeof Server> = {
+const typeIcons: Record<string, typeof Server> = {
   rightsizing: Gauge,
   idle_resource: Server,
   reserved_instance: Database,
   storage_optimization: HardDrive,
   network_optimization: Network,
   database_tuning: Database,
+  savings_plans: Database,
+  ebs_optimization: HardDrive,
+  hybrid_benefit: Server,
+  spot_vms: Server,
+  committed_use_discount: Database,
+  committed_use: Database,
+  sustained_use: Gauge,
+  preemptible_vms: Server,
+  gcp_cud: Database,
+  ri_conversion: Database,
 };
 
-const typeLabels: Record<RecommendationType, string> = {
+const typeLabels: Record<string, string> = {
   rightsizing: 'Rightsizing',
   idle_resource: 'Idle Resource',
   reserved_instance: 'Reserved Instance',
   storage_optimization: 'Storage',
   network_optimization: 'Network',
   database_tuning: 'Database',
+  savings_plans: 'Savings Plan',
+  ebs_optimization: 'EBS',
+  hybrid_benefit: 'Hybrid Benefit',
+  spot_vms: 'Spot VMs',
+  committed_use_discount: 'CUD',
+  committed_use: 'CUD',
+  sustained_use: 'Sustained Use',
+  preemptible_vms: 'Preemptible',
+  gcp_cud: 'CUD',
+  ri_conversion: 'RI Conversion',
 };
 
 const impactColors: Record<RecommendationImpact, string> = {
@@ -54,9 +75,10 @@ const statusIcons = {
 };
 
 export function RecommendationsPanel() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const recommendations = useMemo(() => generateRecommendations(selectedTenantId), [selectedTenantId]);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const recommendations = useMemo(() => generateRecommendations(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   const topRecommendations = recommendations.filter(r => r.status === 'new').slice(0, 4);
   
   const totalSavings = recommendations
@@ -98,7 +120,7 @@ export function RecommendationsPanel() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="recommendations-grid">
             {topRecommendations.map((rec, index) => {
-              const Icon = typeIcons[rec.type];
+              const Icon = typeIcons[rec.type] || Lightbulb;
               const StatusIcon = statusIcons[rec.status];
               
               return (
@@ -138,7 +160,7 @@ export function RecommendationsPanel() {
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="text-xs">
-                              {typeLabels[rec.type]}
+                              {typeLabels[rec.type] || rec.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </Badge>
                             <Badge 
                               variant="outline"
@@ -177,9 +199,9 @@ export function RecommendationsPanel() {
 }
 
 export function RecommendationsSummary() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const recommendations = useMemo(() => generateRecommendations(selectedTenantId), [selectedTenantId]);
+  const recommendations = useMemo(() => generateRecommendations(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   
   const byType = recommendations.reduce((acc, rec) => {
     if (!acc[rec.type]) acc[rec.type] = { count: 0, savings: 0 };

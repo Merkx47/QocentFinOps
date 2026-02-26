@@ -17,9 +17,9 @@ import { Download, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function CostTrendChart() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const costTrend = useMemo(() => generateCostTrend(selectedTenantId), [selectedTenantId]);
+  const costTrend = useMemo(() => generateCostTrend(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   
   const today = new Date().toISOString().split('T')[0];
   const totalActual = costTrend

@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateServiceBreakdown } from '@/lib/mock-data';
-import { serviceInfo } from '@shared/schema';
+import { getServiceInfo } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import {
   PieChart,
@@ -27,9 +27,10 @@ const CHART_COLORS = [
 ];
 
 export function ServiceBreakdownChart() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const breakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const breakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   const topServices = breakdown.slice(0, 8);
   
   const chartData = topServices.map((item, index) => ({
@@ -44,7 +45,7 @@ export function ServiceBreakdownChart() {
       const data = payload[0].payload;
       return (
         <div className="bg-popover/95 backdrop-blur-sm border border-popover-border rounded-lg p-3 shadow-xl">
-          <p className="text-sm font-medium mb-1">{serviceInfo[data.name as keyof typeof serviceInfo]?.name || data.name}</p>
+          <p className="text-sm font-medium mb-1">{serviceInfo[data.name]?.name || data.name}</p>
           <p className="text-lg font-mono font-bold">{formatCompactCurrency(data.value, currency)}</p>
           <p className="text-xs text-muted-foreground">{data.percentage}% of total</p>
         </div>
@@ -135,9 +136,10 @@ export function ServiceBreakdownChart() {
 }
 
 export function ServiceBreakdownTable() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const breakdown = useMemo(() => generateServiceBreakdown(selectedTenantId), [selectedTenantId]);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const breakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
 
   return (
     <motion.div

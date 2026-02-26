@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateTenantSummaries, mockTenants } from '@/lib/mock-data';
-import { serviceInfo } from '@shared/schema';
+import { generateOrgUnitSummaries, getOrgUnits } from '@/lib/mock-data';
+import { getServiceInfo, getProviderConfig } from '@/lib/provider-config';
 import { useMemo, useState } from 'react';
 import { 
   Users,
@@ -25,16 +25,19 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Tenants() {
-  const { currency, setSelectedTenantId } = useFinOpsStore();
+  const { currency, setSelectedOrgUnitId, selectedProvider } = useFinOpsStore();
   const [searchQuery, setSearchQuery] = useState('');
   
-  const summaries = useMemo(() => generateTenantSummaries(), []);
+  const config = getProviderConfig(selectedProvider);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const orgUnits = useMemo(() => getOrgUnits(selectedProvider), [selectedProvider]);
+  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
   
-  const filteredTenants = useMemo(() => {
+  const filteredSummaries = useMemo(() => {
     return summaries.filter(s => 
-      s.tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.tenant.industry.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.tenant.country.toLowerCase().includes(searchQuery.toLowerCase())
+      s.orgUnit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.orgUnit.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.orgUnit.environment.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [summaries, searchQuery]);
 
@@ -57,20 +60,20 @@ export default function Tenants() {
           className="flex items-center justify-between gap-4 mb-6"
         >
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Tenant Management</h1>
+            <h1 className="text-2xl font-bold text-foreground">{config.hierarchy.managementPageTitle}</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Multi-tenant cost analytics and comparison
+              {config.hierarchy.managementPageSubtitle}
             </p>
           </div>
           <Button className="bg-primary hover:bg-primary/90">
             <Building2 className="h-4 w-4 mr-2" />
-            Add Tenant
+            {config.hierarchy.addButtonLabel}
           </Button>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total Tenants', value: mockTenants.length, icon: Users, color: 'text-primary' },
+            { label: `Total ${config.hierarchy.orgUnitLabelPlural}`, value: orgUnits.length, icon: Users, color: 'text-primary' },
             { label: 'Combined Spend', value: formatCurrency(stats.totalSpend, currency), icon: BarChart3, color: 'text-emerald-500', isValue: true },
             { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: Zap, color: 'text-amber-500' },
             { label: 'Pending Actions', value: stats.totalRecommendations, icon: Lightbulb, color: 'text-blue-500' },
@@ -116,13 +119,13 @@ export default function Tenants() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-primary" />
-                  All Tenants
-                  <Badge variant="secondary" className="ml-2">{filteredTenants.length}</Badge>
+                  All {config.hierarchy.orgUnitLabelPlural}
+                  <Badge variant="secondary" className="ml-2">{filteredSummaries.length}</Badge>
                 </CardTitle>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search tenants..."
+                    placeholder={`Search ${config.hierarchy.orgUnitLabelPlural.toLowerCase()}...`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 w-[250px]"
@@ -133,17 +136,17 @@ export default function Tenants() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="tenants-grid">
-                {filteredTenants.map((summary, index) => (
+                {filteredSummaries.map((summary, index) => (
                   <motion.div
-                    key={summary.tenant.id}
+                    key={summary.orgUnit.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.05 * index }}
                   >
                     <div 
                       className="p-4 rounded-xl border border-border bg-background/50 hover-elevate cursor-pointer"
-                      onClick={() => setSelectedTenantId(summary.tenant.id)}
-                      data-testid={`tenant-card-${summary.tenant.id}`}
+                      onClick={() => setSelectedOrgUnitId(summary.orgUnit.id)}
+                      data-testid={`tenant-card-${summary.orgUnit.id}`}
                     >
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3">
@@ -151,25 +154,25 @@ export default function Tenants() {
                             <Building2 className="h-6 w-6 text-primary" />
                           </div>
                           <div>
-                            <h3 className="font-semibold">{summary.tenant.name}</h3>
+                            <h3 className="font-semibold">{summary.orgUnit.name}</h3>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{summary.tenant.industry}</span>
+                              <span>{summary.orgUnit.description}</span>
                               <span>-</span>
                               <span className="flex items-center gap-1">
                                 <Globe className="h-3 w-3" />
-                                {summary.tenant.country}
+                                {summary.orgUnit.environment}
                               </span>
                             </div>
                           </div>
                         </div>
                         <Badge 
-                          variant={summary.tenant.status === 'active' ? 'secondary' : 'outline'}
+                          variant={summary.orgUnit.status === 'active' ? 'secondary' : 'outline'}
                           className={cn(
                             "text-xs capitalize",
-                            summary.tenant.status === 'active' && "bg-emerald-500/10 text-emerald-500"
+                            summary.orgUnit.status === 'active' && "bg-emerald-500/10 text-emerald-500"
                           )}
                         >
-                          {summary.tenant.status}
+                          {summary.orgUnit.status}
                         </Badge>
                       </div>
                       
@@ -231,22 +234,15 @@ export default function Tenants() {
                         </div>
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          <span>{summary.tenant.contactEmail}</span>
-                        </div>
-                      </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
               
-              {filteredTenants.length === 0 && (
+              {filteredSummaries.length === 0 && (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Tenants Found</h3>
+                  <h3 className="text-lg font-semibold mb-2">No {config.hierarchy.orgUnitLabelPlural} Found</h3>
                   <p className="text-sm text-muted-foreground">
                     Try adjusting your search query.
                   </p>

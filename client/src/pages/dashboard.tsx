@@ -7,18 +7,22 @@ import { BudgetGauge } from '@/components/dashboard/budget-gauge';
 import { TenantComparison, TenantStatsCard } from '@/components/dashboard/tenant-comparison';
 import { ResourceHeatmap } from '@/components/dashboard/resource-heatmap';
 import { useFinOpsStore } from '@/lib/finops-store';
-import { mockTenants } from '@/lib/mock-data';
+import { getOrgUnits } from '@/lib/mock-data';
+import { getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Dashboard() {
-  const { selectedTenantId } = useFinOpsStore();
+  const { selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const tenantName = useMemo(() => {
-    if (selectedTenantId === 'all') return 'All Tenants';
-    return mockTenants.find(t => t.id === selectedTenantId)?.name || 'Unknown';
-  }, [selectedTenantId]);
+  const config = getProviderConfig(selectedProvider);
+  const orgUnits = getOrgUnits(selectedProvider);
+
+  const unitName = useMemo(() => {
+    if (selectedOrgUnitId === 'all') return config.hierarchy.allUnitsLabel;
+    return orgUnits.find(u => u.id === selectedOrgUnitId)?.name || 'Unknown';
+  }, [selectedOrgUnitId, selectedProvider]);
 
   return (
     <ScrollArea className="h-full">
@@ -34,7 +38,7 @@ export default function Dashboard() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Cloud cost analytics and optimization for{' '}
-            <span className="text-foreground font-medium">{tenantName}</span>
+            <span className="text-foreground font-medium">{unitName}</span>
           </p>
         </motion.div>
 
@@ -62,7 +66,7 @@ export default function Dashboard() {
               <ResourceHeatmap />
             </div>
             <div className="space-y-6">
-              {selectedTenantId === 'all' && <TenantStatsCard />}
+              {selectedOrgUnitId === 'all' && <TenantStatsCard />}
               <TenantComparison />
             </div>
           </div>

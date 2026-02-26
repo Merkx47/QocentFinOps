@@ -7,9 +7,9 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 export function BudgetGauge() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   
   const percentage = Math.min(kpis.budgetUsed, 100);
   const circumference = 2 * Math.PI * 70;

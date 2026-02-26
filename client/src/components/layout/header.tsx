@@ -1,5 +1,6 @@
-import { useFinOpsStore, formatCompactCurrency } from '@/lib/finops-store';
-import { mockTenants, generateKPIs } from '@/lib/mock-data';
+import { useFinOpsStore, formatCompactCurrency, applyProviderTheme } from '@/lib/finops-store';
+import { getOrgUnits, generateKPIs } from '@/lib/mock-data';
+import { getProviderConfig } from '@/lib/provider-config';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,10 +17,9 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Building2, 
-  ChevronDown, 
-  Calendar, 
+import {
+  Building2,
+  Calendar,
   Bell,
   Settings,
   User,
@@ -28,14 +28,17 @@ import {
   Sun,
 } from 'lucide-react';
 import type { Currency, DateRangePreset } from '@shared/schema';
+import { AWSLogo, AzureLogo, GCPLogo } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
 import { useMemo, useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import type { CloudProvider } from '@/lib/provider-config';
 
 const currencyOptions: { value: Currency; label: string; flag: string }[] = [
-  { value: 'USD', label: 'USD', flag: '🇺🇸' },
-  { value: 'GBP', label: 'GBP', flag: '🇬🇧' },
-  { value: 'EUR', label: 'EUR', flag: '🇪🇺' },
-  { value: 'JPY', label: 'JPY', flag: '🇯🇵' },
+  { value: 'USD', label: 'USD', flag: '\u{1F1FA}\u{1F1F8}' },
+  { value: 'GBP', label: 'GBP', flag: '\u{1F1EC}\u{1F1E7}' },
+  { value: 'EUR', label: 'EUR', flag: '\u{1F1EA}\u{1F1FA}' },
+  { value: 'JPY', label: 'JPY', flag: '\u{1F1EF}\u{1F1F5}' },
 ];
 
 const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
@@ -46,17 +49,30 @@ const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
   { value: 'lastMonth', label: 'Last Month' },
 ];
 
+function ProviderLogo({ provider }: { provider: CloudProvider }) {
+  if (provider === 'aws') return <AWSLogo className="h-7 w-auto" />;
+  if (provider === 'azure') return <AzureLogo className="h-7 w-auto" />;
+  if (provider === 'gcp') return <GCPLogo className="h-7 w-auto" />;
+  return <img src={huaweiLogo} alt="Huawei Cloud" className="h-8 w-auto object-contain" />;
+}
+
 export function Header() {
-  const { 
-    currency, 
-    setCurrency, 
-    selectedTenantId, 
-    setSelectedTenantId,
+  const {
+    currency,
+    setCurrency,
+    selectedOrgUnitId,
+    setSelectedOrgUnitId,
+    selectedProvider,
     dateRange,
     setDateRange,
+    logout,
+    user,
   } = useFinOpsStore();
 
-  const [isDark, setIsDark] = useState(true);
+  const [, navigate] = useLocation();
+  const [isDark, setIsDark] = useState(false);
+  const config = getProviderConfig(selectedProvider);
+  const orgUnits = useMemo(() => getOrgUnits(selectedProvider), [selectedProvider]);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -67,17 +83,21 @@ export function Header() {
     }
   }, [isDark]);
 
-  const selectedTenant = useMemo(() => {
-    if (selectedTenantId === 'all') return null;
-    return mockTenants.find(t => t.id === selectedTenantId);
-  }, [selectedTenantId]);
+  useEffect(() => {
+    applyProviderTheme(selectedProvider);
+  }, [selectedProvider]);
 
-  const kpis = useMemo(() => generateKPIs(selectedTenantId), [selectedTenantId]);
+  const selectedUnit = useMemo(() => {
+    if (selectedOrgUnitId === 'all') return null;
+    return orgUnits.find(u => u.id === selectedOrgUnitId);
+  }, [selectedOrgUnitId, orgUnits]);
+
+  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
 
   const handleDateRangeChange = (preset: DateRangePreset) => {
     const today = new Date();
     let startDate = new Date();
-    
+
     switch (preset) {
       case 'last7days':
         startDate.setDate(today.getDate() - 7);
@@ -101,7 +121,7 @@ export function Header() {
         });
         return;
     }
-    
+
     setDateRange({
       preset,
       startDate: startDate.toISOString().split('T')[0],
@@ -109,56 +129,49 @@ export function Header() {
     });
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
       <div className="h-full px-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <img 
-              src={huaweiLogo} 
-              alt="Huawei Cloud" 
-              className="h-8 w-auto object-contain"
-              data-testid="img-huawei-logo"
-            />
+            <ProviderLogo provider={selectedProvider} />
             <div className="hidden sm:block">
-              <span className="text-lg font-semibold text-foreground">FinOps</span>
+              <span className="text-lg font-semibold text-foreground">{config.shortName} FinOps</span>
               <span className="text-xs text-muted-foreground ml-2">Dashboard</span>
             </div>
           </div>
-          
+
           <div className="h-6 w-px bg-border hidden md:block" />
-          
-          <Select 
-            value={selectedTenantId} 
-            onValueChange={setSelectedTenantId}
+
+          <Select
+            value={selectedOrgUnitId}
+            onValueChange={setSelectedOrgUnitId}
           >
-            <SelectTrigger 
-              className="w-[220px] bg-background/50"
-              data-testid="select-tenant"
-            >
+            <SelectTrigger className="w-[220px] bg-background/50">
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <SelectValue placeholder="Select Tenant" />
+                <SelectValue placeholder={config.hierarchy.selectorLabel} />
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" data-testid="select-tenant-all">
+              <SelectItem value="all">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">All Tenants</span>
+                  <span className="font-medium">{config.hierarchy.allUnitsLabel}</span>
                   <Badge variant="secondary" className="text-xs">
-                    {mockTenants.length}
+                    {orgUnits.length}
                   </Badge>
                 </div>
               </SelectItem>
-              {mockTenants.map((tenant) => (
-                <SelectItem 
-                  key={tenant.id} 
-                  value={tenant.id}
-                  data-testid={`select-tenant-${tenant.id}`}
-                >
+              {orgUnits.map((unit) => (
+                <SelectItem key={unit.id} value={unit.id}>
                   <div className="flex items-center justify-between gap-3 w-full">
-                    <span>{tenant.name}</span>
-                    <span className="text-xs text-muted-foreground">{tenant.country}</span>
+                    <span>{unit.name}</span>
+                    <span className="text-xs text-muted-foreground">{unit.environment}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -172,7 +185,7 @@ export function Header() {
             <span className="text-sm font-mono font-semibold text-foreground">
               {formatCompactCurrency(kpis.totalSpend, currency)}
             </span>
-            <Badge 
+            <Badge
               variant={kpis.spendGrowthRate > 0 ? "destructive" : "secondary"}
               className="text-xs"
             >
@@ -180,14 +193,11 @@ export function Header() {
             </Badge>
           </div>
 
-          <Select 
-            value={dateRange.preset} 
+          <Select
+            value={dateRange.preset}
             onValueChange={(value) => handleDateRangeChange(value as DateRangePreset)}
           >
-            <SelectTrigger 
-              className="w-[150px] bg-background/50"
-              data-testid="select-date-range"
-            >
+            <SelectTrigger className="w-[150px] bg-background/50">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <SelectValue />
@@ -195,34 +205,23 @@ export function Header() {
             </SelectTrigger>
             <SelectContent>
               {dateRangeOptions.map((option) => (
-                <SelectItem 
-                  key={option.value} 
-                  value={option.value}
-                  data-testid={`select-date-${option.value}`}
-                >
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select 
-            value={currency} 
+          <Select
+            value={currency}
             onValueChange={(value) => setCurrency(value as Currency)}
           >
-            <SelectTrigger 
-              className="w-[100px] bg-background/50"
-              data-testid="select-currency"
-            >
+            <SelectTrigger className="w-[100px] bg-background/50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {currencyOptions.map((option) => (
-                <SelectItem 
-                  key={option.value} 
-                  value={option.value}
-                  data-testid={`select-currency-${option.value}`}
-                >
+                <SelectItem key={option.value} value={option.value}>
                   <div className="flex items-center gap-2">
                     <span>{option.flag}</span>
                     <span>{option.label}</span>
@@ -236,7 +235,6 @@ export function Header() {
             variant="ghost"
             size="icon"
             onClick={() => setIsDark(!isDark)}
-            data-testid="button-theme-toggle"
           >
             {isDark ? (
               <Sun className="h-4 w-4" />
@@ -245,11 +243,10 @@ export function Header() {
             )}
           </Button>
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="relative"
-            data-testid="button-notifications"
           >
             <Bell className="h-4 w-4" />
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
@@ -259,27 +256,32 @@ export function Header() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                data-testid="button-user-menu"
-              >
+              <Button variant="ghost" size="icon">
                 <User className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem data-testid="menu-item-profile">
+              {user && (
+                <>
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem>
                 <User className="h-4 w-4 mr-2" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="menu-item-settings">
+              <DropdownMenuItem>
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-destructive"
-                data-testid="menu-item-logout"
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout

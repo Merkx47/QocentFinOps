@@ -1,10 +1,13 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { useFinOpsStore } from "@/lib/finops-store";
+import ProviderSelect from "@/pages/provider-select";
+import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Analytics from "@/pages/analytics";
 import Resources from "@/pages/resources";
@@ -17,10 +20,35 @@ import Settings from "@/pages/settings";
 import Help from "@/pages/help";
 import NotFound from "@/pages/not-found";
 
-function Router() {
+function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1 h-[calc(100vh-4rem)] overflow-hidden">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useFinOpsStore();
+  const [location] = useLocation();
+
+  if (!isAuthenticated) {
+    return <Redirect to="/" />;
+  }
+
+  return <>{children}</>;
+}
+
+function DashboardRouter() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/resources" component={Resources} />
       <Route path="/recommendations" component={Recommendations} />
@@ -39,15 +67,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <Header />
-          <div className="flex">
-            <Sidebar />
-            <main className="flex-1 h-[calc(100vh-4rem)] overflow-hidden">
-              <Router />
-            </main>
-          </div>
-        </div>
+        <Switch>
+          <Route path="/" component={ProviderSelect} />
+          <Route path="/login">
+            <Login />
+          </Route>
+          <Route>
+            <AuthGuard>
+              <DashboardLayout>
+                <DashboardRouter />
+              </DashboardLayout>
+            </AuthGuard>
+          </Route>
+        </Switch>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

@@ -20,7 +20,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
 import { generateResources } from '@/lib/mock-data';
-import { serviceInfo, regionNames, type HuaweiService } from '@shared/schema';
+import { getServiceInfo, getRegionNames } from '@/lib/provider-config';
 import { useMemo, useState } from 'react';
 import { 
   Server,
@@ -49,12 +49,15 @@ const getUtilizationBadge = (value: number) => {
 };
 
 export default function Resources() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
-  const resources = useMemo(() => generateResources(selectedTenantId), [selectedTenantId]);
+  const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
+  const regionNames = useMemo(() => getRegionNames(selectedProvider), [selectedProvider]);
+
+  const resources = useMemo(() => generateResources(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   
   const filteredResources = useMemo(() => {
     return resources.filter(r => {

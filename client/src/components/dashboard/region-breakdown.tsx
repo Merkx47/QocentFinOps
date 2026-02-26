@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateRegionBreakdown } from '@/lib/mock-data';
-import { regionNames } from '@shared/schema';
+import { getRegionNames, getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import {
   BarChart,
@@ -22,9 +22,11 @@ const REGION_COLORS = [
 ];
 
 export function RegionBreakdownChart() {
-  const { currency, selectedTenantId } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
   
-  const breakdown = useMemo(() => generateRegionBreakdown(selectedTenantId), [selectedTenantId]);
+  const regionNames = useMemo(() => getRegionNames(selectedProvider), [selectedProvider]);
+  const providerConfig = useMemo(() => getProviderConfig(selectedProvider), [selectedProvider]);
+  const breakdown = useMemo(() => generateRegionBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
   
   const chartData = breakdown.map((item, index) => ({
     region: item.region,
@@ -65,7 +67,7 @@ export function RegionBreakdownChart() {
               <Globe2 className="h-5 w-5 text-primary" />
               Regional Distribution
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Cost by Huawei Cloud region</p>
+            <p className="text-sm text-muted-foreground mt-1">Cost by {providerConfig.shortName} region</p>
           </div>
         </CardHeader>
         <CardContent>
@@ -120,10 +122,10 @@ export function RegionBreakdownChart() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Africa (Johannesburg)</p>
+                <p className="text-xs text-muted-foreground">{regionNames[breakdown[0]?.region]}</p>
                 <p className="text-sm font-medium">Primary Region</p>
                 <p className="text-lg font-mono font-bold">
-                  {breakdown.find(b => b.region === 'af-south-1')?.percentage || 0}%
+                  {breakdown[0]?.percentage || 0}%
                 </p>
               </div>
             </div>
