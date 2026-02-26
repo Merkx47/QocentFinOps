@@ -24,7 +24,8 @@ interface KPICardProps {
   trend?: number;
   trendLabel?: string;
   icon: typeof IconTrendingUp;
-  iconGradient: string;
+  iconBg: string;
+  iconColor: string;
   delay?: number;
 }
 
@@ -35,7 +36,8 @@ function KPICard({
   trend, 
   trendLabel,
   icon: Icon,
-  iconGradient,
+  iconBg,
+  iconColor,
   delay = 0,
 }: KPICardProps) {
   const isPositiveTrend = trend !== undefined && trend > 0;
@@ -48,10 +50,6 @@ function KPICard({
       transition={{ duration: 0.4, delay }}
     >
       <Card className="h-full bg-white border-slate-200/80 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden relative group">
-        <div
-          className="absolute top-0 left-0 right-0 h-1 opacity-80"
-          style={{ background: iconGradient }}
-        />
         <CardContent className="pt-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -86,11 +84,8 @@ function KPICard({
                 </div>
               )}
             </div>
-            <div
-              className="p-3 rounded-xl shadow-sm"
-              style={{ background: iconGradient }}
-            >
-              <Icon className={cn("h-5 w-5 text-white")} />
+            <div className={cn("p-3 rounded-xl", iconBg)}>
+              <Icon className={cn("h-5 w-5", iconColor)} />
             </div>
           </div>
         </CardContent>
@@ -105,8 +100,6 @@ export function KPICards() {
   
   const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
 
-  const providerGradient = config.colors.gradient;
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5" data-testid="kpi-cards-grid">
       <KPICard
@@ -115,7 +108,8 @@ export function KPICards() {
         trend={kpis.spendGrowthRate}
         trendLabel="vs last month"
         icon={IconWallet}
-        iconGradient={providerGradient}
+        iconBg="bg-primary/10"
+        iconColor="text-primary"
         delay={0}
       />
       <KPICard
@@ -123,7 +117,8 @@ export function KPICards() {
         value={`${kpis.budgetUsed}%`}
         subtitle={`${formatCompactCurrency(kpis.totalSpend, currency)} of ${formatCompactCurrency(kpis.totalBudget, currency)}`}
         icon={IconTarget}
-        iconGradient={kpis.budgetUsed > 90 ? "linear-gradient(135deg, #ef4444, #dc2626)" : kpis.budgetUsed > 70 ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #10b981, #059669)"}
+        iconBg={kpis.budgetUsed > 90 ? "bg-red-500/10" : kpis.budgetUsed > 70 ? "bg-amber-500/10" : "bg-emerald-500/10"}
+        iconColor={kpis.budgetUsed > 90 ? "text-red-500" : kpis.budgetUsed > 70 ? "text-amber-500" : "text-emerald-500"}
         delay={0.1}
       />
       <KPICard
@@ -131,7 +126,8 @@ export function KPICards() {
         value={kpis.activeResources.toLocaleString()}
         subtitle={`${formatCurrency(kpis.costPerResource, currency)} avg/resource`}
         icon={IconServer2}
-        iconGradient="linear-gradient(135deg, #3b82f6, #2563eb)"
+        iconBg="bg-blue-500/10"
+        iconColor="text-blue-500"
         delay={0.2}
       />
       <KPICard
@@ -139,7 +135,8 @@ export function KPICards() {
         value={formatCurrency(kpis.potentialSavings, currency)}
         subtitle={`${kpis.optimizationOpportunities} opportunities`}
         icon={IconPigMoney}
-        iconGradient="linear-gradient(135deg, #10b981, #059669)"
+        iconBg="bg-emerald-500/10"
+        iconColor="text-emerald-500"
         delay={0.3}
       />
     </div>
@@ -160,8 +157,8 @@ export function SecondaryKPIs() {
               <p className="text-xs text-slate-400 mb-1">Efficiency Score</p>
               <p className="text-2xl font-bold font-mono text-slate-900">{kpis.averageEfficiency}%</p>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
-              <IconBolt className="h-5 w-5 text-white" />
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <IconBolt className="h-5 w-5 text-emerald-500" />
             </div>
           </div>
         </CardContent>
@@ -174,8 +171,8 @@ export function SecondaryKPIs() {
               <p className="text-xs text-slate-400 mb-1">Optimization Opportunities</p>
               <p className="text-2xl font-bold font-mono text-slate-900">{kpis.optimizationOpportunities}</p>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-sm">
-              <IconBulb className="h-5 w-5 text-white" />
+            <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <IconBulb className="h-5 w-5 text-amber-500" />
             </div>
           </div>
         </CardContent>
@@ -188,8 +185,8 @@ export function SecondaryKPIs() {
               <p className="text-xs text-slate-400 mb-1">Cost per Resource</p>
               <p className="text-2xl font-bold font-mono text-slate-900">{formatCurrency(kpis.costPerResource, currency)}</p>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-              <IconServer2 className="h-5 w-5 text-white" />
+            <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <IconServer2 className="h-5 w-5 text-blue-500" />
             </div>
           </div>
         </CardContent>
