@@ -67,19 +67,30 @@ function NavLink({
     <Link href={item.href}>
       <div
         className={cn(
-          "flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer hover-elevate",
+          "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer relative group/nav",
           isActive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground",
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/80",
           isCollapsed && "justify-center px-2"
         )}
       >
-        <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-primary-foreground")} />
+        <item.icon className={cn(
+          "h-[18px] w-[18px] flex-shrink-0 transition-colors",
+          isActive ? "text-primary-foreground" : "text-slate-400 group-hover/nav:text-slate-600"
+        )} />
         {!isCollapsed && (
           <>
-            <span className="text-sm font-medium flex-1">{item.label}</span>
-            {item.badge && (
-              <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center">
+            <span className={cn(
+              "text-[13px] font-medium flex-1",
+              isActive ? "font-semibold" : ""
+            )}>{item.label}</span>
+            {item.badge && !isActive && (
+              <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center">
+                {item.badge}
+              </span>
+            )}
+            {item.badge && isActive && (
+              <span className="h-5 min-w-5 px-1.5 rounded-full bg-white/20 text-primary-foreground text-[11px] font-semibold flex items-center justify-center">
                 {item.badge}
               </span>
             )}
@@ -114,12 +125,12 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-[calc(100vh-4rem)] border-r border-border bg-sidebar flex flex-col transition-all duration-300",
-        sidebarCollapsed ? "w-16" : "w-64"
+        "h-[calc(100vh-4rem)] border-r border-slate-200/80 bg-white flex flex-col transition-all duration-300",
+        sidebarCollapsed ? "w-16" : "w-60"
       )}
     >
-      <div className="flex-1 overflow-y-auto py-4">
-        <nav className="px-3 space-y-1">
+      <div className="flex-1 overflow-y-auto py-3">
+        <nav className="px-2.5 space-y-0.5">
           {mainNavItems.map((item) => (
             <NavLink
               key={item.href}
@@ -130,11 +141,11 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className={cn("my-4 mx-3 border-t border-border", sidebarCollapsed && "mx-2")} />
+        <div className={cn("my-3 mx-3 border-t border-slate-100", sidebarCollapsed && "mx-2")} />
 
-        <nav className="px-3 space-y-1">
+        <nav className="px-2.5 space-y-0.5">
           {!sidebarCollapsed && (
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-3 mb-2">
               Financial
             </p>
           )}
@@ -149,7 +160,7 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="border-t border-border p-3 space-y-1">
+      <div className="border-t border-slate-100 p-2.5 space-y-0.5">
         {bottomNavItems.map((item) => (
           <NavLink
             key={item.href}
@@ -163,7 +174,7 @@ export function Sidebar() {
           variant="ghost"
           size="sm"
           className={cn(
-            "w-full justify-center mt-2",
+            "w-full justify-center mt-1 text-slate-400 hover:text-slate-600 rounded-xl h-9",
             !sidebarCollapsed && "justify-end"
           )}
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -172,7 +183,7 @@ export function Sidebar() {
             <ChevronRight className="h-4 w-4" />
           ) : (
             <>
-              <span className="text-xs text-muted-foreground mr-2">Collapse</span>
+              <span className="text-[11px] mr-2">Collapse</span>
               <ChevronLeft className="h-4 w-4" />
             </>
           )}
