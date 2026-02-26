@@ -112,6 +112,8 @@ export default function Settings() {
                         <SelectItem value="GBP">GBP - British Pound</SelectItem>
                         <SelectItem value="EUR">EUR - Euro</SelectItem>
                         <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                        <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
+                        <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

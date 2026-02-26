@@ -36,10 +36,12 @@ import { useLocation } from 'wouter';
 import type { CloudProvider } from '@/lib/provider-config';
 
 const currencyOptions: { value: Currency; label: string; flag: string }[] = [
-  { value: 'USD', label: 'USD', flag: '\u{1F1FA}\u{1F1F8}' },
-  { value: 'GBP', label: 'GBP', flag: '\u{1F1EC}\u{1F1E7}' },
-  { value: 'EUR', label: 'EUR', flag: '\u{1F1EA}\u{1F1FA}' },
-  { value: 'JPY', label: 'JPY', flag: '\u{1F1EF}\u{1F1F5}' },
+  { value: 'USD', label: 'USD', flag: '🇺🇸' },
+  { value: 'GBP', label: 'GBP', flag: '🇬🇧' },
+  { value: 'EUR', label: 'EUR', flag: '🇪🇺' },
+  { value: 'JPY', label: 'JPY', flag: '🇯🇵' },
+  { value: 'NGN', label: 'NGN', flag: '🇳🇬' },
+  { value: 'CNY', label: 'CNY', flag: '🇨🇳' },
 ];
 
 const dateRangeOptions: { value: DateRangePreset; label: string }[] = [

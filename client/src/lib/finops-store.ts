@@ -92,50 +92,49 @@ export function convertCurrency(amount: number, toCurrency: Currency): number {
     GBP: 0.79,
     EUR: 0.92,
     JPY: 149.50,
+    NGN: 1550.00,
+    CNY: 7.24,
   };
   return amount * rates[toCurrency];
 }
 
-export function formatCurrency(amount: number, currency: Currency): string {
-  const symbols: Record<Currency, string> = {
-    USD: '$',
-    GBP: '£',
-    EUR: '€',
-    JPY: '¥',
-  };
+const currencySymbols: Record<Currency, string> = {
+  USD: '$',
+  GBP: '£',
+  EUR: '€',
+  JPY: '¥',
+  NGN: '₦',
+  CNY: '¥',
+};
 
+const noDecimalCurrencies: Currency[] = ['JPY', 'NGN'];
+
+export function formatCurrency(amount: number, currency: Currency): string {
   const converted = convertCurrency(amount, currency);
 
-  if (currency === 'JPY') {
-    return `${symbols[currency]}${Math.round(converted).toLocaleString()}`;
+  if (noDecimalCurrencies.includes(currency)) {
+    return `${currencySymbols[currency]}${Math.round(converted).toLocaleString()}`;
   }
 
-  return `${symbols[currency]}${converted.toLocaleString(undefined, {
+  return `${currencySymbols[currency]}${converted.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}`;
 }
 
 export function formatCompactCurrency(amount: number, currency: Currency): string {
-  const symbols: Record<Currency, string> = {
-    USD: '$',
-    GBP: '£',
-    EUR: '€',
-    JPY: '¥',
-  };
-
   const converted = convertCurrency(amount, currency);
 
   if (converted >= 1000000) {
-    return `${symbols[currency]}${(converted / 1000000).toFixed(1)}M`;
+    return `${currencySymbols[currency]}${(converted / 1000000).toFixed(1)}M`;
   }
   if (converted >= 1000) {
-    return `${symbols[currency]}${(converted / 1000).toFixed(1)}K`;
+    return `${currencySymbols[currency]}${(converted / 1000).toFixed(1)}K`;
   }
 
-  if (currency === 'JPY') {
-    return `${symbols[currency]}${Math.round(converted).toLocaleString()}`;
+  if (noDecimalCurrencies.includes(currency)) {
+    return `${currencySymbols[currency]}${Math.round(converted).toLocaleString()}`;
   }
 
-  return `${symbols[currency]}${converted.toFixed(2)}`;
+  return `${currencySymbols[currency]}${converted.toFixed(2)}`;
 }

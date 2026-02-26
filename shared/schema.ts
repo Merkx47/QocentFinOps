@@ -21,13 +21,15 @@ export type User = typeof users.$inferSelect;
 // ==================== FINOPS TYPES ====================
 
 // Currency types
-export type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY';
+export type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY' | 'NGN' | 'CNY';
 
 export const currencyInfo: Record<Currency, { symbol: string; name: string; flag: string; rate: number }> = {
   USD: { symbol: '$', name: 'US Dollar', flag: '🇺🇸', rate: 1 },
   GBP: { symbol: '£', name: 'British Pound', flag: '🇬🇧', rate: 0.79 },
   EUR: { symbol: '€', name: 'Euro', flag: '🇪🇺', rate: 0.92 },
   JPY: { symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵', rate: 149.50 },
+  NGN: { symbol: '₦', name: 'Nigerian Naira', flag: '🇳🇬', rate: 1550.00 },
+  CNY: { symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳', rate: 7.24 },
 };
 
 // Huawei Cloud Regions
