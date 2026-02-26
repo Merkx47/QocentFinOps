@@ -3,14 +3,15 @@ import { motion } from 'framer-motion';
 import { useFinOpsStore } from '@/lib/finops-store';
 import type { CloudProvider } from '@/lib/provider-config';
 import { getProviderConfig, allProviders } from '@/lib/provider-config';
-import { AWSLogo, AzureLogo, GCPLogo } from '@/components/provider-logos';
+import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
-import { ArrowRight, BarChart3 } from 'lucide-react';
+import qocentLogo from '@assets/qocent-logo_1772143895241.png';
+import { ArrowRight } from 'lucide-react';
 
 function ProviderIcon({ provider }: { provider: CloudProvider }) {
   if (provider === 'aws') return <AWSLogo className="h-10 w-auto" />;
   if (provider === 'azure') return <AzureLogo className="h-10 w-auto" />;
-  if (provider === 'gcp') return <GCPLogo className="h-10 w-auto" />;
+  if (provider === 'gcp') return <GCPIcon className="h-10 w-auto" />;
   return <img src={huaweiLogo} alt="Huawei Cloud" className="h-10 w-auto object-contain" />;
 }
 
@@ -37,11 +38,9 @@ export default function ProviderSelect() {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg shadow-slate-900/20 mb-6">
-            <BarChart3 className="h-7 w-7 text-white" />
-          </div>
+          <img src={qocentLogo} alt="Qocent" className="h-12 w-auto mx-auto mb-6" />
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-3">
-            Multi-Cloud FinOps
+            Qocent FinOps
           </h1>
           <p className="text-base text-slate-500 max-w-md mx-auto leading-relaxed">
             Select your cloud provider to get started with cost analytics and optimization
@@ -104,7 +103,7 @@ export default function ProviderSelect() {
           transition={{ duration: 0.5, delay: 0.8 }}
           className="text-center text-xs text-slate-400 mt-10"
         >
-          Unified cloud cost management across all major providers
+          One Window, All Cloud
         </motion.p>
       </div>
     </div>

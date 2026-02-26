@@ -7,14 +7,14 @@ import { Label } from '@/components/ui/label';
 import { useFinOpsStore } from '@/lib/finops-store';
 import type { CloudProvider } from '@/lib/provider-config';
 import { getProviderConfig } from '@/lib/provider-config';
-import { AWSLogo, AzureLogo, GCPLogo } from '@/components/provider-logos';
+import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
 import { useState } from 'react';
 
 function ProviderLogo({ provider }: { provider: CloudProvider }) {
   if (provider === 'aws') return <AWSLogo className="h-16 w-auto" />;
   if (provider === 'azure') return <AzureLogo className="h-16 w-auto" />;
-  if (provider === 'gcp') return <GCPLogo className="h-16 w-auto" />;
+  if (provider === 'gcp') return <GCPIcon className="h-16 w-auto" />;
   return <img src={huaweiLogo} alt="Huawei Cloud" className="h-16 w-auto object-contain" />;
 }
 

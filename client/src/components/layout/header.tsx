@@ -28,7 +28,7 @@ import {
   Sun,
 } from 'lucide-react';
 import type { Currency, DateRangePreset } from '@shared/schema';
-import { AWSLogo, AzureLogo, GCPLogo } from '@/components/provider-logos';
+import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
 import { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
@@ -52,7 +52,7 @@ const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
 function ProviderLogo({ provider }: { provider: CloudProvider }) {
   if (provider === 'aws') return <AWSLogo className="h-7 w-auto" />;
   if (provider === 'azure') return <AzureLogo className="h-7 w-auto" />;
-  if (provider === 'gcp') return <GCPLogo className="h-7 w-auto" />;
+  if (provider === 'gcp') return <GCPIcon className="h-7 w-auto" />;
   return <img src={huaweiLogo} alt="Huawei Cloud" className="h-8 w-auto object-contain" />;
 }
 
