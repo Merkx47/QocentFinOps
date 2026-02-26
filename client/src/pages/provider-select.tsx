@@ -69,7 +69,7 @@ export default function ProviderSelect() {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-12"
         >
-          <img src={qocentLogo} alt="Qocent" className="h-12 w-auto mx-auto mb-6" />
+          <img src={qocentLogo} alt="Qocent" className="h-24 w-auto mx-auto mb-6" />
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-3">
             Qocent FinOps
           </h1>
