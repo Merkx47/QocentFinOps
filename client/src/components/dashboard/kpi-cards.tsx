@@ -6,7 +6,7 @@ import { getProviderConfig } from '@/lib/provider-config';
 import { 
   TrendingUp, 
   TrendingDown, 
-  DollarSign, 
+  Wallet, 
   Server, 
   Lightbulb,
   Target,
@@ -114,7 +114,7 @@ export function KPICards() {
         value={formatCurrency(kpis.totalSpend, currency)}
         trend={kpis.spendGrowthRate}
         trendLabel="vs last month"
-        icon={DollarSign}
+        icon={Wallet}
         iconGradient={providerGradient}
         delay={0}
       />
