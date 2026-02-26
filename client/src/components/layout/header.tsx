@@ -30,7 +30,7 @@ import {
 import type { Currency, DateRangePreset } from '@shared/schema';
 import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
-import qocentLogo from '@assets/qocent-logo_1772143895241.png';
+
 import { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import type { CloudProvider } from '@/lib/provider-config';
@@ -140,13 +140,9 @@ export function Header() {
       <div className="h-full px-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
-            <img src={qocentLogo} alt="Qocent" className="h-7 w-auto" />
-            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center">
-                <ProviderLogo provider={selectedProvider} />
-              </div>
-              <span className="text-sm font-medium text-slate-600">{config.shortName}</span>
+            <ProviderLogo provider={selectedProvider} />
+            <div className="hidden sm:block">
+              <span className="text-sm font-semibold text-slate-800">{config.shortName} FinOps</span>
             </div>
           </div>
 

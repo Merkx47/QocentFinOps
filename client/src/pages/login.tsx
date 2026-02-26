@@ -9,7 +9,7 @@ import type { CloudProvider } from '@/lib/provider-config';
 import { getProviderConfig } from '@/lib/provider-config';
 import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
-import qocentLogo from '@assets/qocent-logo_1772143895241.png';
+
 import { useState } from 'react';
 
 function ProviderLogo({ provider }: { provider: CloudProvider }) {
@@ -61,15 +61,6 @@ export default function Login() {
           <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-white/15 blur-2xl" />
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10"
-        >
-          <img src={qocentLogo} alt="Qocent" className="h-8 w-auto brightness-0 invert" />
-        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
