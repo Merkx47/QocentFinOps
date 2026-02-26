@@ -1,0 +1,1290 @@
+================================================================================
+  MULTICLOUD FINOPS PLATFORM - COMPLETE BUILD GUIDE FOR REPLIT
+================================================================================
+
+PROJECT: MultiCloudFinOps
+DESCRIPTION: A unified multi-cloud FinOps (Financial Operations) platform that
+supports AWS, Azure, GCP, and Huawei Cloud — all through one consistent UX.
+The user selects a cloud provider on a landing page, authenticates via SSO,
+and enters a fully themed dashboard with provider-specific services, regions,
+colors, terminology, organizational hierarchy, and mock data.
+
+GOLDEN RULE: The existing Huawei Cloud dashboard (already in this codebase) is
+the STANDARD. Every page, component, animation, layout, chart, table, card, and
+interaction pattern you see in the Huawei implementation MUST be replicated
+identically for AWS, Azure, and GCP — only the data, colors, services, regions,
+organizational structure, and terminology change. DO NOT redesign or simplify
+anything. Match it exactly.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1.  CURRENT CODEBASE (What Already Exists)
+2.  TECH STACK (Do Not Change)
+3.  CLOUD PROVIDER ORGANIZATIONAL HIERARCHIES (Critical — Read First)
+4.  PHASE 1: Provider Selection Landing Page
+5.  PHASE 2: Provider Theming System
+6.  PHASE 3: Provider-Specific Data (Schema + Mock Data)
+7.  PHASE 4: Refactor All Components to Be Provider-Aware
+8.  PHASE 5: Provider-Specific Pages
+9.  PHASE 6: SSO / Authentication Flow
+10. PHASE 7: Provider-Specific Recommendations
+11. COMPLETE PROVIDER REFERENCE (AWS, Azure, GCP, Huawei)
+12. FILE-BY-FILE MODIFICATION GUIDE
+13. DESIGN SYSTEM PER PROVIDER
+14. WHAT NOT TO CHANGE
+
+================================================================================
+1. CURRENT CODEBASE (What Already Exists — The Huawei Standard)
+================================================================================
+
+The project is a fully functional Huawei Cloud FinOps dashboard with:
+
+DIRECTORY STRUCTURE:
+├── client/src/
+│   ├── App.tsx                          # Main routing (wouter)
+│   ├── main.tsx                         # Entry point
+│   ├── components/
+│   │   ├── dashboard/
+│   │   │   ├── kpi-cards.tsx            # 4 KPI cards: Total Spend, Budget Util, Active Resources, Potential Savings
+│   │   │   ├── cost-trend-chart.tsx     # Area chart: 30-day cost + 7-day forecast
+│   │   │   ├── service-breakdown.tsx    # Donut chart + table of services by cost
+│   │   │   ├── region-breakdown.tsx     # Horizontal bar chart by region
+│   │   │   ├── budget-gauge.tsx         # Circular SVG gauge (green/yellow/red)
+│   │   │   ├── resource-heatmap.tsx     # Grid heatmap of CPU utilization
+│   │   │   ├── tenant-comparison.tsx    # Top 5 organizational units ranked by spend
+│   │   │   └── recommendations-panel.tsx # Top 4 recommendation cards
+│   │   ├── layout/
+│   │   │   ├── header.tsx               # Logo, org unit selector, currency, date range, theme toggle
+│   │   │   └── sidebar.tsx              # Navigation sidebar with sections
+│   │   └── ui/                          # 60+ Shadcn/Radix UI components (DO NOT TOUCH)
+│   ├── pages/
+│   │   ├── dashboard.tsx                # Main overview page
+│   │   ├── analytics.tsx                # Deep-dive: cost trend, by service, by region, comparison tabs
+│   │   ├── resources.tsx                # Resource inventory table with filters
+│   │   ├── recommendations.tsx          # Full recommendations with category sidebar
+│   │   ├── tenants.tsx                  # Organizational unit management grid (rename per provider)
+│   │   ├── budgets.tsx                  # Budget tracking with progress bars
+│   │   ├── allocation.tsx               # Treemap charts for service/org-unit allocation
+│   │   ├── reports.tsx                  # Report generation page
+│   │   ├── settings.tsx                 # Settings page
+│   │   ├── help.tsx                     # Help page
+│   │   └── not-found.tsx                # 404 page
+│   ├── lib/
+│   │   ├── finops-store.ts              # Zustand store: currency, selectedUnit, dateRange, filters
+│   │   ├── mock-data.ts                 # All mock data generators
+│   │   ├── queryClient.ts              # TanStack Query client
+│   │   └── utils.ts                    # Tailwind cn() utility
+│   └── hooks/
+│       ├── use-mobile.tsx
+│       └── use-toast.ts
+├── server/
+│   ├── index.ts                        # Express server entry
+│   ├── routes.ts                       # API routes (empty template)
+│   ├── storage.ts                      # Storage abstraction
+│   ├── static.ts                       # Static file serving
+│   └── vite.ts                         # Vite dev server integration
+├── shared/
+│   └── schema.ts                       # All types: HuaweiService, HuaweiRegion, etc.
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── tailwind.config.ts
+├── drizzle.config.ts
+└── design_guidelines.md
+
+EXISTING FEATURES (all must be preserved and replicated per provider):
+- 4 KPI Cards with trend indicators
+- Cost Trend area chart with 30-day history + 7-day forecast
+- Service Breakdown donut chart + detailed table
+- Region Breakdown horizontal bar chart
+- Budget Gauge (circular SVG with green/yellow/red states)
+- Resource Utilization Heatmap (color-coded grid)
+- Organizational Unit Comparison cards (currently labeled "Tenant Comparison")
+- Recommendations Panel with type/impact/effort badges
+- Analytics page with 4 tabs (Trend, Services, Regions, Comparison)
+- Resource Inventory with search, service filter, status filter
+- Full Recommendations page with category sidebar
+- Org Unit Management grid with efficiency scores (currently "Tenant Management")
+- Budget Management with progress bars and status badges
+- Cost Allocation treemaps
+- Sidebar navigation (collapsible)
+- Header with org unit selector, currency switcher, date range, dark/light mode
+- Framer Motion animations on all cards and page transitions
+- Multi-currency support (USD, GBP, EUR, JPY)
+- Responsive grid layouts (1→2→3→4 columns)
+
+================================================================================
+2. TECH STACK (Do Not Change)
+================================================================================
+
+Frontend:
+- React 18 + TypeScript
+- Vite (bundler)
+- Wouter (routing)
+- Zustand (global state)
+- TanStack Query (server state)
+- Shadcn UI + Radix UI (component library)
+- Tailwind CSS (styling)
+- Recharts (charts: Area, Pie, Bar, Composed, Treemap)
+- Framer Motion (animations)
+- Lucide React (icons)
+- JetBrains Mono (monospace font for numbers)
+- Inter (UI font)
+
+Backend:
+- Express.js + TypeScript
+- Drizzle ORM + PostgreSQL (Neon)
+- esbuild (server bundling)
+
+DO NOT add new major libraries. Work within the existing stack.
+
+================================================================================
+3. CLOUD PROVIDER ORGANIZATIONAL HIERARCHIES (Critical — Read First)
+================================================================================
+
+IMPORTANT: Each cloud provider has a DIFFERENT organizational structure.
+The existing Huawei dashboard uses "Tenants" but that is Huawei-specific.
+The dashboard must use the CORRECT hierarchy and terminology for each provider.
+
+The dropdown in the header (currently "Tenant Selector") and the management
+page (currently "Tenant Management") must adapt to each provider's real
+organizational structure. The FinOps dashboard shows cost data scoped to
+the provider's billing/organizational unit.
+
+=== AWS ORGANIZATIONAL HIERARCHY ===
+
+    AWS Organization (root)
+    ├── Management Account (payer account — pays consolidated bill)
+    ├── OUs (Organizational Units) [optional]
+    │   ├── OUs (nested)
+    │   │   └── Member Accounts
+    │   └── Member Accounts
+    └── Member Accounts (directly under root)
+        └── Resources (EC2, S3, RDS, etc.)
+
+KEY CONCEPTS:
+- AWS Organizations: Service to consolidate multiple AWS accounts
+- Management Account (Payer Account): Single account that creates the
+  organization and receives the consolidated bill for ALL member accounts.
+  Cannot be changed. Has full admin control.
+- Organizational Units (OUs): Optional containers for grouping accounts.
+  Can represent departments, environments, subsidiaries. Nestable.
+  OUs are for governance (SCPs), NOT a billing construct —
+  you cannot get a bill per OU directly.
+- Member Accounts: The fundamental unit of isolation. Each has its own
+  resources, IAM users/roles, and a unique 12-digit account ID.
+  Resources always live inside an account scoped to a region.
+- Consolidated Billing: Management account gets one bill aggregating
+  all member accounts. Usage across accounts combines for volume
+  discounts, RI sharing, and Savings Plans sharing.
+
+BILLING SCOPE: Per Account. OUs are NOT a billing scope. You filter
+by Account ID or by cost allocation tags in Cost Explorer.
+
+FINOPS DASHBOARD MAPPING:
+- Header dropdown: "Account Selector" → shows "All Accounts" + list
+  of member accounts (e.g., "prod-account-001", "dev-account-002")
+- Management page: "Account Management" (not "Tenant Management")
+- Sidebar label: "Accounts" (not "Tenants")
+- The "All Accounts" view = consolidated Organization view
+- Clicking a specific account = scoped to that account's costs
+
+MOCK ACCOUNTS FOR AWS (8 accounts, representing a large US/Global org):
+- acct-001: "Production Workloads" (Prod, us-east-1 primary)
+- acct-002: "Development & Testing" (Dev/Test, us-west-2 primary)
+- acct-003: "Data Analytics" (Analytics, us-east-1 primary)
+- acct-004: "Machine Learning" (ML/AI, us-west-2 primary)
+- acct-005: "Security & Compliance" (Security, us-east-1 primary)
+- acct-006: "Shared Services" (Platform, eu-west-1 primary)
+- acct-007: "Mobile Backend" (App, ap-southeast-1 primary)
+- acct-008: "Disaster Recovery" (DR, eu-central-1 primary)
+Budget: Each account has its own budget allocation.
+Efficiency score: Per-account optimization score.
+
+=== AZURE ORGANIZATIONAL HIERARCHY ===
+
+Azure has TWO parallel hierarchies: Resource Management and Billing.
+
+RESOURCE MANAGEMENT HIERARCHY:
+    Entra ID Tenant (identity boundary — formerly Azure AD)
+    └── Root Management Group (auto-created, ID = tenant ID)
+        ├── Management Groups [optional]
+        │   ├── Management Groups (nested)
+        │   │   └── Subscriptions
+        │   └── Subscriptions
+        └── Subscriptions (directly under root)
+            └── Resource Groups
+                └── Resources (VMs, Storage, Databases, etc.)
+
+BILLING HIERARCHY (varies by agreement type):
+
+Enterprise Agreement (EA):
+    EA Billing Account (Enrollment)
+    ├── Departments [optional]
+    │   └── Enrollment Accounts
+    │       └── Subscriptions
+    └── Enrollment Accounts (directly)
+        └── Subscriptions
+
+Microsoft Customer Agreement (MCA):
+    MCA Billing Account
+    └── Billing Profiles (invoices generated here)
+        └── Invoice Sections
+            └── Subscriptions
+
+KEY CONCEPTS:
+- Entra ID Tenant: The foundational identity boundary. Every subscription
+  trusts exactly one Entra ID tenant. This is the identity plane.
+- Management Groups: Hierarchical method for organizing subscriptions.
+  Policy and RBAC cascade down. Nestable.
+- Subscriptions: The FUNDAMENTAL unit of billing, access control, and
+  resource provisioning. Each subscription has a unique GUID. This is
+  where costs are primarily tracked. Service limits are per-subscription.
+- Resource Groups: Logical containers for related resources within a
+  subscription. Resources in a group share lifecycle.
+- Resources: The actual Azure services (VMs, Storage Accounts, etc.)
+- Departments (EA) / Invoice Sections (MCA): Billing grouping constructs.
+- Azure Cost Management: Supports BOTH resource scopes (Management Group,
+  Subscription, Resource Group) and billing scopes (Billing Account,
+  Department, etc.)
+
+BILLING SCOPE: Per Subscription (primary). Also viewable per Management
+Group, Resource Group, or billing constructs (Department/Invoice Section).
+Tags provide additional cost allocation.
+
+FINOPS DASHBOARD MAPPING:
+- Header dropdown: "Subscription Selector" → shows "All Subscriptions"
+  + list of subscriptions (e.g., "Prod-Sub-001", "Dev-Sub-002")
+- Management page: "Subscription Management" (not "Tenant Management")
+- Sidebar label: "Subscriptions" (not "Tenants")
+- The "All Subscriptions" view = consolidated Management Group view
+- Clicking a specific subscription = scoped to that subscription's costs
+
+MOCK SUBSCRIPTIONS FOR AZURE (8 subscriptions, representing a large enterprise):
+- sub-001: "Production - Europe" (Prod, westeurope primary)
+- sub-002: "Production - US" (Prod, eastus primary)
+- sub-003: "Development" (Dev, westeurope primary)
+- sub-004: "Testing & QA" (QA, uksouth primary)
+- sub-005: "Data Platform" (Analytics, northeurope primary)
+- sub-006: "AI & Machine Learning" (AI/ML, eastus2 primary)
+- sub-007: "Shared Infrastructure" (Platform, westeurope primary)
+- sub-008: "Disaster Recovery" (DR, southeastasia primary)
+Budget: Each subscription has its own budget allocation.
+Efficiency score: Per-subscription optimization score.
+
+=== GCP ORGANIZATIONAL HIERARCHY ===
+
+GCP has TWO separate hierarchies: Resource and Billing.
+
+RESOURCE HIERARCHY:
+    Organization (tied to Google Workspace / Cloud Identity domain)
+    ├── Folders [optional]
+    │   ├── Folders (nested)
+    │   │   └── Projects
+    │   └── Projects
+    └── Projects (directly under org)
+        └── Resources (Compute Engine, Cloud Storage, BigQuery, etc.)
+
+BILLING HIERARCHY (separate from resource hierarchy):
+    Cloud Billing Account (exists outside resource hierarchy)
+    ├── Linked Projects (each project linked to exactly one billing account)
+    └── Billing Subaccounts [resellers only]
+        └── Linked Projects
+
+KEY CONCEPTS:
+- Organization: Root node of GCP resource hierarchy. Auto-provisioned when
+  a Google Workspace or Cloud Identity account creates a GCP project.
+  Tied to a specific domain (e.g., example.com).
+- Folders: Optional grouping. Can represent departments, teams, environments.
+  Nestable. IAM and Org Policies inherit from parents.
+- Projects: The FUNDAMENTAL organizational unit in GCP. Every resource
+  belongs to exactly one project. Each project has a globally unique
+  project ID (immutable) and project number. Each project is linked to
+  exactly one Cloud Billing Account.
+- Resources: The actual GCP services. Always exist within a project.
+- Cloud Billing Account: Exists OUTSIDE the resource hierarchy. Linked to
+  projects and pays for their usage. Can pay for projects across different
+  folders or even across organizations. Has a payment method via Google
+  Payments Profile.
+- Labels: Key-value pairs on resources forwarded to billing. The mechanism
+  for sub-project cost allocation.
+- BigQuery Billing Export: Primary mechanism for detailed cost analysis.
+
+BILLING SCOPE: Per Project (primary). Also viewable per Folder (in
+billing reports hierarchy view), per Label, or per Billing Account.
+
+FINOPS DASHBOARD MAPPING:
+- Header dropdown: "Project Selector" → shows "All Projects"
+  + list of projects (e.g., "prod-web-app", "data-analytics-prod")
+- Management page: "Project Management" (not "Tenant Management")
+- Sidebar label: "Projects" (not "Tenants")
+- The "All Projects" view = consolidated Billing Account / Org view
+- Clicking a specific project = scoped to that project's costs
+
+MOCK PROJECTS FOR GCP (8 projects, representing a data/tech-forward org):
+- proj-001: "production-web-app" (Prod Web, us-central1 primary)
+- proj-002: "production-api" (Prod API, us-east1 primary)
+- proj-003: "data-analytics-prod" (Analytics, us-central1 primary)
+- proj-004: "ml-training-platform" (ML/AI, us-west1 primary)
+- proj-005: "dev-environment" (Dev, europe-west1 primary)
+- proj-006: "staging-environment" (Staging, europe-west2 primary)
+- proj-007: "shared-infrastructure" (Platform, us-central1 primary)
+- proj-008: "mobile-backend" (Mobile, asia-southeast1 primary)
+Budget: Each project has its own budget allocation.
+Efficiency score: Per-project optimization score.
+
+=== HUAWEI CLOUD ORGANIZATIONAL HIERARCHY ===
+
+    Organization
+    └── Root OU (auto-created)
+        ├── OUs [optional]
+        │   ├── OUs (nested)
+        │   │   └── Member Accounts
+        │   └── Member Accounts
+        └── Member Accounts (directly under root)
+            ├── Enterprise Projects (cross-region resource grouping)
+            │   └── Resources
+            └── "default" Enterprise Project (unassigned resources)
+
+BILLING:
+    Enterprise Center
+    └── Master Account (Management Account / Payer)
+        └── Unified Accounting
+            ├── Member Account A (bills paid by master)
+            ├── Member Account B (bills paid by master)
+            └── Member Account C (bills paid by master)
+
+KEY CONCEPTS:
+- Organizations: Service for managing multiple Huawei Cloud accounts.
+  Hierarchical tree with root OU at top.
+- Management Account (Master Account): Creates the organization, pays
+  consolidated bills via Enterprise Center.
+- OUs: Containers for grouping member accounts. Represent departments,
+  subsidiaries, teams. Nestable.
+- Member Accounts: Created within or invited to the organization.
+  Each retains its own resource management.
+- Enterprise Projects: Cross-region logical grouping of resources within
+  an account. This is the RECOMMENDED approach (replacing IAM projects).
+  Resources can be transferred between enterprise projects. Supports cost
+  tracking per enterprise project.
+- Enterprise Center: Console for managing discounts, funds, invoices, and
+  bills across multiple accounts. Unified accounting = master pays all.
+- Cost Center: Provides cost analysis/allocation by linked account,
+  enterprise project, cost tags, cost categories, service type.
+
+BILLING SCOPE: Per Member Account and per Enterprise Project.
+
+FINOPS DASHBOARD MAPPING:
+- The existing dashboard already uses "Tenants" — this maps to
+  Enterprise Projects within a single master account context.
+  Keep this as-is for Huawei. The header dropdown shows
+  "All Tenants" + individual enterprise project names.
+- Sidebar label: "Tenants" (Huawei-specific term stays)
+
+MOCK TENANTS FOR HUAWEI (keep existing 8):
+- Dangote Industries (Manufacturing, Nigeria)
+- MTN Nigeria (Telecommunications, Nigeria)
+- Flutterwave (Fintech, Nigeria)
+- Safaricom Kenya (Telecommunications, Kenya)
+- Standard Bank SA (Banking, South Africa)
+- Andela (Technology, Nigeria)
+- Jumia Group (E-commerce, Nigeria)
+- Interswitch (Fintech, Nigeria)
+
+=== CROSS-PROVIDER COMPARISON TABLE ===
+
+| Concept                    | AWS              | Azure              | GCP               | Huawei Cloud         |
+|----------------------------|------------------|--------------------|--------------------|----------------------|
+| Top identity boundary      | Organization     | Entra ID Tenant    | Organization       | Organization         |
+| Grouping layer             | OUs              | Mgmt Groups         | Folders            | OUs                  |
+| Billing/cost unit          | Account          | Subscription       | Project            | Enterprise Project   |
+| Resource container         | (in Account)     | Resource Group     | (in Project)       | Enterprise Project   |
+| Payer / consolidated bill  | Management Acct  | Billing Account    | Billing Account    | Master Account       |
+| Cost allocation dimensions | Account, Tags    | Sub, MG, Tags      | Project, Labels    | EP, Acct, Tags       |
+| Selector dropdown label    | "Account"        | "Subscription"     | "Project"          | "Tenant"             |
+| Management page label      | "Accounts"       | "Subscriptions"    | "Projects"         | "Tenants"            |
+| Sidebar nav label          | "Accounts"       | "Subscriptions"    | "Projects"         | "Tenants"            |
+| Cost tool                  | Cost Explorer    | Cost Management    | Billing Reports    | Cost Center          |
+| Monitoring                 | CloudWatch       | Azure Monitor      | Cloud Monitoring   | Cloud Eye (CES)       |
+| Recommendation source      | Trusted Advisor  | Azure Advisor      | Recommender API    | BSS Optimization     |
+
+================================================================================
+4. PHASE 1: Provider Selection Landing Page
+================================================================================
+
+CREATE: client/src/pages/provider-select.tsx
+
+This is the FIRST page users see. It shows 4 cloud provider cards.
+
+LAYOUT:
+- Full-screen centered layout (min-h-screen, flex items-center justify-center)
+- Dark background (bg-gray-950)
+- Title: "Multi-Cloud FinOps Platform" (text-3xl font-bold, centered)
+- Subtitle: "Select your cloud provider to continue" (text-muted-foreground)
+- 4 cards in a 2x2 grid (grid-cols-2 gap-6, max-w-2xl mx-auto)
+- Each card: ~200px tall, rounded-xl, border, hover effect (scale-105 transition)
+- Each card contains: Provider logo/icon, Provider name, brief tagline
+
+CARDS:
+1. AWS
+   - Colors: Orange (#FF9900) accent on dark (#232F3E)
+   - Icon: Use a cloud icon styled orange, or an SVG AWS logo
+   - Tagline: "Amazon Web Services"
+
+2. Azure
+   - Colors: Blue (#0078D4) accent
+   - Icon: Blue cloud/Azure styled icon
+   - Tagline: "Microsoft Azure"
+
+3. GCP
+   - Colors: Multi-color (Blue #4285F4, Red #EA4335, Yellow #FBBC05, Green #34A853)
+   - Icon: Google-styled multi-color icon
+   - Tagline: "Google Cloud Platform"
+
+4. Huawei Cloud
+   - Colors: Red (#C8102E) accent
+   - Icon: Use the existing Huawei logo (attached_assets/image_1764758201045.png)
+   - Tagline: "Huawei Cloud"
+
+ON CLICK:
+- Navigate to /login?provider=aws (or azure, gcp, huawei)
+- Store selected provider in Zustand store
+
+ANIMATION:
+- Cards should animate in with Framer Motion (staggered, opacity 0→1, y 20→0)
+- Hover: scale-105 with shadow-lg transition
+
+================================================================================
+5. PHASE 2: Provider Theming System
+================================================================================
+
+The entire app must visually transform based on the selected provider.
+
+UPDATE: client/src/lib/finops-store.ts
+
+Add to the Zustand store:
+  selectedProvider: 'aws' | 'azure' | 'gcp' | 'huawei'
+  setSelectedProvider: (provider) => void
+
+CREATE: client/src/lib/provider-config.ts
+
+This file defines EVERYTHING about each provider. Structure:
+
+export type CloudProvider = 'aws' | 'azure' | 'gcp' | 'huawei';
+
+export interface ProviderConfig {
+  id: CloudProvider;
+  name: string;                    // "Amazon Web Services"
+  shortName: string;               // "AWS"
+  tagline: string;                 // "Cloud Computing Services"
+  logo: string;                    // path to logo image or component
+
+  // Theme
+  colors: {
+    primary: string;               // CSS color for --primary
+    primaryForeground: string;
+    accent: string;
+    gradient: string;              // CSS gradient for branded elements
+    chartPrimary: string;          // Primary chart color
+  };
+
+  // Cloud-specific data
+  services: ServiceDefinition[];
+  regions: RegionDefinition[];
+
+  // Organizational hierarchy
+  hierarchy: {
+    orgUnitLabel: string;          // "Account" (AWS), "Subscription" (Azure), "Project" (GCP), "Tenant" (Huawei)
+    orgUnitLabelPlural: string;    // "Accounts", "Subscriptions", "Projects", "Tenants"
+    orgUnitIcon: string;           // Icon name from lucide
+    parentLabel: string;           // "Organization" (AWS), "Management Group" (Azure), "Organization" (GCP), "Organization" (Huawei)
+    billingLabel: string;          // "Consolidated Bill" (AWS), "Billing Account" (Azure), "Billing Account" (GCP), "Enterprise Center" (Huawei)
+    allUnitsLabel: string;         // "All Accounts", "All Subscriptions", "All Projects", "All Tenants"
+    selectorLabel: string;         // "Select Account", "Select Subscription", "Select Project", "Select Tenant"
+    managementPageTitle: string;   // "Account Management", "Subscription Management", etc.
+    managementPageSubtitle: string;
+  };
+
+  // Terminology
+  terminology: {
+    computeUnit: string;           // "Instance" (AWS), "VM" (Azure), "Instance" (GCP), "Server" (Huawei)
+    storageUnit: string;           // "Bucket" (AWS/GCP), "Container" (Azure), "Bucket" (Huawei)
+    costTool: string;              // "Cost Explorer" (AWS), "Cost Management" (Azure), etc.
+    savingsMechanism: string;      // "Savings Plans" (AWS), "Reserved Instances" (Azure), etc.
+    recommendationSource: string;  // "Trusted Advisor" (AWS), "Azure Advisor", "Recommender API", "BSS"
+  };
+
+  // Mock organizational units (these replace "tenants" per provider)
+  mockOrgUnits: OrgUnit[];
+
+  // Recommendation types (provider-specific)
+  recommendationTypes: RecommendationTypeDefinition[];
+}
+
+// Generic org unit interface (replaces the Huawei-specific Tenant interface)
+export interface OrgUnit {
+  id: string;
+  name: string;
+  description: string;            // "Production Workloads", "Data Platform", etc.
+  environment: string;            // "Production", "Development", "Staging", etc.
+  primaryRegion: string;          // Primary region for this unit
+  contactName: string;
+  contactEmail: string;
+  budget: number;
+  efficiencyScore: number;
+  status: 'active' | 'inactive' | 'suspended';
+}
+
+THEME APPLICATION:
+- When provider changes, update CSS custom properties on document.documentElement
+- The header logo/branding switches to the provider's logo
+- Chart colors use provider's palette
+- The --primary CSS variable changes per provider
+
+CSS VARIABLE OVERRIDES (update in a useEffect when provider changes):
+
+AWS:
+  --primary: 32 100% 50% (orange #FF9900 in HSL)
+  --primary-foreground: 0 0% 100%
+  Charts: Orange gradient palette
+
+Azure:
+  --primary: 207 100% 41% (blue #0078D4)
+  --primary-foreground: 0 0% 100%
+  Charts: Blue gradient palette
+
+GCP:
+  --primary: 217 89% 61% (blue #4285F4)
+  --primary-foreground: 0 0% 100%
+  Charts: Google multi-color palette
+
+Huawei:
+  --primary: 352 85% 43% (red #C8102E)
+  --primary-foreground: 0 0% 100%
+  Charts: Red palette (keep existing)
+
+================================================================================
+6. PHASE 3: Provider-Specific Data (Schema + Mock Data)
+================================================================================
+
+UPDATE: shared/schema.ts
+
+Keep all existing Huawei types. Add parallel types for each provider:
+
+--- AWS SERVICES ---
+export type AWSService =
+  | 'EC2'             // Elastic Compute Cloud
+  | 'S3'              // Simple Storage Service
+  | 'RDS'             // Relational Database Service
+  | 'Lambda'          // Serverless Functions
+  | 'EKS'             // Elastic Kubernetes Service
+  | 'ECS'             // Elastic Container Service
+  | 'DynamoDB'        // NoSQL Database
+  | 'Aurora'          // MySQL/PostgreSQL Compatible DB
+  | 'Redshift'        // Data Warehouse
+  | 'CloudFront'      // CDN
+  | 'ELB'             // Elastic Load Balancing
+  | 'VPC'             // Virtual Private Cloud
+  | 'Route53'         // DNS
+  | 'EBS'             // Elastic Block Store
+  | 'EFS'             // Elastic File System
+  | 'SageMaker'       // ML Platform
+  | 'SNS'             // Simple Notification Service
+  | 'SQS'             // Simple Queue Service
+  | 'Glacier'         // Archive Storage
+  | 'WAF'             // Web Application Firewall
+  | 'CloudWatch'      // Monitoring
+  | 'Bedrock'         // AI Foundation Models
+  | 'ElastiCache';    // In-Memory Cache
+
+export const awsServiceInfo: Record<AWSService, { name: string; category: string; color: string }> = {
+  EC2: { name: 'Elastic Compute Cloud', category: 'Compute', color: '#FF9900' },
+  S3: { name: 'Simple Storage Service', category: 'Storage', color: '#569A31' },
+  RDS: { name: 'Relational Database Service', category: 'Database', color: '#3B48CC' },
+  Lambda: { name: 'Lambda Functions', category: 'Compute', color: '#FF9900' },
+  EKS: { name: 'Elastic Kubernetes', category: 'Containers', color: '#FF9900' },
+  ECS: { name: 'Elastic Container Service', category: 'Containers', color: '#FF9900' },
+  DynamoDB: { name: 'DynamoDB', category: 'Database', color: '#3B48CC' },
+  Aurora: { name: 'Aurora', category: 'Database', color: '#3B48CC' },
+  Redshift: { name: 'Redshift', category: 'Analytics', color: '#8C4FFF' },
+  CloudFront: { name: 'CloudFront CDN', category: 'Network', color: '#8C4FFF' },
+  ELB: { name: 'Elastic Load Balancing', category: 'Network', color: '#8C4FFF' },
+  VPC: { name: 'Virtual Private Cloud', category: 'Network', color: '#8C4FFF' },
+  Route53: { name: 'Route 53 DNS', category: 'Network', color: '#8C4FFF' },
+  EBS: { name: 'Elastic Block Store', category: 'Storage', color: '#569A31' },
+  EFS: { name: 'Elastic File System', category: 'Storage', color: '#569A31' },
+  SageMaker: { name: 'SageMaker ML', category: 'AI/ML', color: '#01A88D' },
+  SNS: { name: 'Simple Notification', category: 'Application', color: '#DD344C' },
+  SQS: { name: 'Simple Queue Service', category: 'Application', color: '#DD344C' },
+  Glacier: { name: 'S3 Glacier', category: 'Storage', color: '#569A31' },
+  WAF: { name: 'Web Application Firewall', category: 'Security', color: '#DD344C' },
+  CloudWatch: { name: 'CloudWatch', category: 'Management', color: '#DD344C' },
+  Bedrock: { name: 'Bedrock AI', category: 'AI/ML', color: '#01A88D' },
+  ElastiCache: { name: 'ElastiCache', category: 'Database', color: '#3B48CC' },
+};
+
+--- AWS REGIONS ---
+export type AWSRegion =
+  | 'us-east-1'       // N. Virginia
+  | 'us-east-2'       // Ohio
+  | 'us-west-1'       // N. California
+  | 'us-west-2'       // Oregon
+  | 'eu-west-1'       // Ireland
+  | 'eu-west-2'       // London
+  | 'eu-central-1'    // Frankfurt
+  | 'ap-southeast-1'  // Singapore
+  | 'ap-northeast-1'  // Tokyo
+  | 'ap-south-1'      // Mumbai
+  | 'sa-east-1'       // Sao Paulo
+  | 'af-south-1';     // Cape Town
+
+export const awsRegionNames: Record<AWSRegion, string> = {
+  'us-east-1': 'US East (N. Virginia)',
+  'us-east-2': 'US East (Ohio)',
+  'us-west-1': 'US West (N. California)',
+  'us-west-2': 'US West (Oregon)',
+  'eu-west-1': 'EU (Ireland)',
+  'eu-west-2': 'EU (London)',
+  'eu-central-1': 'EU (Frankfurt)',
+  'ap-southeast-1': 'Asia Pacific (Singapore)',
+  'ap-northeast-1': 'Asia Pacific (Tokyo)',
+  'ap-south-1': 'Asia Pacific (Mumbai)',
+  'sa-east-1': 'South America (Sao Paulo)',
+  'af-south-1': 'Africa (Cape Town)',
+};
+
+--- AZURE SERVICES ---
+export type AzureService =
+  | 'VirtualMachines'       // Virtual Machines
+  | 'AppService'            // App Service
+  | 'AzureSQL'              // Azure SQL Database
+  | 'CosmosDB'              // Cosmos DB
+  | 'BlobStorage'           // Blob Storage
+  | 'AzureFunctions'        // Azure Functions
+  | 'AKS'                   // Azure Kubernetes Service
+  | 'ContainerApps'         // Container Apps
+  | 'Synapse'               // Synapse Analytics
+  | 'VirtualNetwork'        // Virtual Network
+  | 'LoadBalancer'          // Load Balancer
+  | 'FrontDoor'             // Front Door CDN
+  | 'AzureDNS'              // Azure DNS
+  | 'ManagedDisks'          // Managed Disks
+  | 'AzureFiles'            // Azure Files
+  | 'AzureAI'               // Azure AI Services
+  | 'OpenAIService'         // Azure OpenAI
+  | 'EventHubs'             // Event Hubs
+  | 'ServiceBus'            // Service Bus
+  | 'AzureMonitor'          // Azure Monitor
+  | 'KeyVault'              // Key Vault
+  | 'AzureFirewall'         // Azure Firewall
+  | 'RedisCache';           // Azure Cache for Redis
+
+export const azureServiceInfo: Record<AzureService, { name: string; category: string; color: string }> = {
+  VirtualMachines: { name: 'Virtual Machines', category: 'Compute', color: '#0078D4' },
+  AppService: { name: 'App Service', category: 'Compute', color: '#0078D4' },
+  AzureSQL: { name: 'Azure SQL Database', category: 'Database', color: '#E8731A' },
+  CosmosDB: { name: 'Cosmos DB', category: 'Database', color: '#E8731A' },
+  BlobStorage: { name: 'Blob Storage', category: 'Storage', color: '#0078D4' },
+  AzureFunctions: { name: 'Azure Functions', category: 'Compute', color: '#F2C811' },
+  AKS: { name: 'Azure Kubernetes', category: 'Containers', color: '#326DE6' },
+  ContainerApps: { name: 'Container Apps', category: 'Containers', color: '#326DE6' },
+  Synapse: { name: 'Synapse Analytics', category: 'Analytics', color: '#0078D4' },
+  VirtualNetwork: { name: 'Virtual Network', category: 'Network', color: '#3999C6' },
+  LoadBalancer: { name: 'Load Balancer', category: 'Network', color: '#3999C6' },
+  FrontDoor: { name: 'Front Door CDN', category: 'Network', color: '#3999C6' },
+  AzureDNS: { name: 'Azure DNS', category: 'Network', color: '#3999C6' },
+  ManagedDisks: { name: 'Managed Disks', category: 'Storage', color: '#0078D4' },
+  AzureFiles: { name: 'Azure Files', category: 'Storage', color: '#0078D4' },
+  AzureAI: { name: 'Azure AI Services', category: 'AI/ML', color: '#0078D4' },
+  OpenAIService: { name: 'Azure OpenAI', category: 'AI/ML', color: '#10A37F' },
+  EventHubs: { name: 'Event Hubs', category: 'Application', color: '#50E6FF' },
+  ServiceBus: { name: 'Service Bus', category: 'Application', color: '#50E6FF' },
+  AzureMonitor: { name: 'Azure Monitor', category: 'Management', color: '#0078D4' },
+  KeyVault: { name: 'Key Vault', category: 'Security', color: '#0078D4' },
+  AzureFirewall: { name: 'Azure Firewall', category: 'Security', color: '#DD344C' },
+  RedisCache: { name: 'Azure Cache for Redis', category: 'Database', color: '#A4262C' },
+};
+
+--- AZURE REGIONS ---
+export type AzureRegion =
+  | 'eastus'            // East US
+  | 'eastus2'           // East US 2
+  | 'westus2'           // West US 2
+  | 'westus3'           // West US 3
+  | 'westeurope'        // West Europe
+  | 'northeurope'       // North Europe
+  | 'uksouth'           // UK South
+  | 'southeastasia'     // Southeast Asia
+  | 'japaneast'         // Japan East
+  | 'australiaeast'     // Australia East
+  | 'centralindia'      // Central India
+  | 'southafricanorth'; // South Africa North
+
+export const azureRegionNames: Record<AzureRegion, string> = {
+  'eastus': 'East US',
+  'eastus2': 'East US 2',
+  'westus2': 'West US 2',
+  'westus3': 'West US 3',
+  'westeurope': 'West Europe (Netherlands)',
+  'northeurope': 'North Europe (Ireland)',
+  'uksouth': 'UK South (London)',
+  'southeastasia': 'Southeast Asia (Singapore)',
+  'japaneast': 'Japan East (Tokyo)',
+  'australiaeast': 'Australia East (Sydney)',
+  'centralindia': 'Central India (Pune)',
+  'southafricanorth': 'South Africa North (Johannesburg)',
+};
+
+--- GCP SERVICES ---
+export type GCPService =
+  | 'ComputeEngine'       // Compute Engine
+  | 'CloudRun'            // Cloud Run
+  | 'GKE'                 // Google Kubernetes Engine
+  | 'CloudFunctions'      // Cloud Functions
+  | 'CloudSQL'            // Cloud SQL
+  | 'BigQuery'            // BigQuery
+  | 'Spanner'             // Cloud Spanner
+  | 'Firestore'           // Cloud Firestore
+  | 'CloudStorage'        // Cloud Storage
+  | 'PersistentDisk'      // Persistent Disk
+  | 'CloudCDN'            // Cloud CDN
+  | 'CloudLoadBalancing'  // Cloud Load Balancing
+  | 'CloudDNS'            // Cloud DNS
+  | 'CloudVPN'            // Cloud VPN
+  | 'VertexAI'            // Vertex AI
+  | 'PubSub'              // Pub/Sub
+  | 'CloudArmor'          // Cloud Armor (WAF)
+  | 'Dataflow'            // Dataflow
+  | 'Dataproc'            // Dataproc (Hadoop/Spark)
+  | 'CloudMonitoring'     // Cloud Monitoring
+  | 'Memorystore'         // Memorystore (Redis)
+  | 'Anthos'              // Anthos
+  | 'Looker';             // Looker Analytics
+
+export const gcpServiceInfo: Record<GCPService, { name: string; category: string; color: string }> = {
+  ComputeEngine: { name: 'Compute Engine', category: 'Compute', color: '#4285F4' },
+  CloudRun: { name: 'Cloud Run', category: 'Compute', color: '#4285F4' },
+  GKE: { name: 'Google Kubernetes Engine', category: 'Containers', color: '#4285F4' },
+  CloudFunctions: { name: 'Cloud Functions', category: 'Compute', color: '#4285F4' },
+  CloudSQL: { name: 'Cloud SQL', category: 'Database', color: '#F4B400' },
+  BigQuery: { name: 'BigQuery', category: 'Analytics', color: '#669DF6' },
+  Spanner: { name: 'Cloud Spanner', category: 'Database', color: '#F4B400' },
+  Firestore: { name: 'Cloud Firestore', category: 'Database', color: '#F4B400' },
+  CloudStorage: { name: 'Cloud Storage', category: 'Storage', color: '#34A853' },
+  PersistentDisk: { name: 'Persistent Disk', category: 'Storage', color: '#34A853' },
+  CloudCDN: { name: 'Cloud CDN', category: 'Network', color: '#669DF6' },
+  CloudLoadBalancing: { name: 'Cloud Load Balancing', category: 'Network', color: '#669DF6' },
+  CloudDNS: { name: 'Cloud DNS', category: 'Network', color: '#669DF6' },
+  CloudVPN: { name: 'Cloud VPN', category: 'Network', color: '#669DF6' },
+  VertexAI: { name: 'Vertex AI', category: 'AI/ML', color: '#EA4335' },
+  PubSub: { name: 'Pub/Sub', category: 'Application', color: '#669DF6' },
+  CloudArmor: { name: 'Cloud Armor', category: 'Security', color: '#EA4335' },
+  Dataflow: { name: 'Dataflow', category: 'Analytics', color: '#669DF6' },
+  Dataproc: { name: 'Dataproc', category: 'Analytics', color: '#669DF6' },
+  CloudMonitoring: { name: 'Cloud Monitoring', category: 'Management', color: '#669DF6' },
+  Memorystore: { name: 'Memorystore', category: 'Database', color: '#F4B400' },
+  Anthos: { name: 'Anthos', category: 'Containers', color: '#4285F4' },
+  Looker: { name: 'Looker', category: 'Analytics', color: '#669DF6' },
+};
+
+--- GCP REGIONS ---
+export type GCPRegion =
+  | 'us-central1'       // Iowa
+  | 'us-east1'          // South Carolina
+  | 'us-west1'          // Oregon
+  | 'us-east4'          // N. Virginia
+  | 'europe-west1'      // Belgium
+  | 'europe-west2'      // London
+  | 'europe-west3'      // Frankfurt
+  | 'asia-southeast1'   // Singapore
+  | 'asia-northeast1'   // Tokyo
+  | 'asia-south1'       // Mumbai
+  | 'australia-southeast1' // Sydney
+  | 'southamerica-east1'; // Sao Paulo
+
+export const gcpRegionNames: Record<GCPRegion, string> = {
+  'us-central1': 'Iowa (us-central1)',
+  'us-east1': 'South Carolina (us-east1)',
+  'us-west1': 'Oregon (us-west1)',
+  'us-east4': 'N. Virginia (us-east4)',
+  'europe-west1': 'Belgium (europe-west1)',
+  'europe-west2': 'London (europe-west2)',
+  'europe-west3': 'Frankfurt (europe-west3)',
+  'asia-southeast1': 'Singapore (asia-southeast1)',
+  'asia-northeast1': 'Tokyo (asia-northeast1)',
+  'asia-south1': 'Mumbai (asia-south1)',
+  'australia-southeast1': 'Sydney (australia-southeast1)',
+  'southamerica-east1': 'Sao Paulo (southamerica-east1)',
+};
+
+--- GENERIC TYPES ---
+Create a generic/union approach so components can work with any provider:
+
+export type CloudService = AWSService | AzureService | GCPService | HuaweiService;
+export type CloudRegion = AWSRegion | AzureRegion | GCPRegion | HuaweiRegion;
+
+All existing interfaces (CostRecord, Resource, Recommendation,
+DashboardKPIs, CostTrendPoint, ServiceBreakdown, RegionBreakdown, etc.)
+should remain as-is but use `CloudService` and `CloudRegion` instead of
+`HuaweiService` and `HuaweiRegion`. The Tenant interface should be
+replaced with the generic OrgUnit interface from provider-config.ts.
+
+================================================================================
+7. PHASE 4: Refactor All Components to Be Provider-Aware
+================================================================================
+
+Every component that currently references Huawei-specific data must be updated
+to read from the provider config instead.
+
+KEY PATTERN:
+  const { selectedProvider } = useFinOpsStore();
+  const config = getProviderConfig(selectedProvider);
+  // Then use config.services, config.regions, config.colors,
+  // config.hierarchy.orgUnitLabel, config.mockOrgUnits, etc.
+
+FILES TO UPDATE:
+
+1. client/src/lib/finops-store.ts
+   - Add: selectedProvider state
+   - Rename: selectedTenantId → selectedOrgUnitId (generic term)
+   - Update: HuaweiService[] → CloudService[], HuaweiRegion[] → CloudRegion[]
+
+2. client/src/lib/mock-data.ts
+   - Create provider-specific mock data generators
+   - All generators accept a provider parameter
+   - generateCostTrend(orgUnitId, provider)
+   - generateServiceBreakdown(orgUnitId, provider) → uses provider's services
+   - generateRegionBreakdown(orgUnitId, provider) → uses provider's regions
+   - generateKPIs(orgUnitId, provider)
+   - generateRecommendations(orgUnitId, provider)
+   - generateResources(orgUnitId, provider)
+   - Mock org units per provider are defined in provider-config.ts (see Section 3)
+
+3. client/src/components/layout/header.tsx
+   - Replace Huawei logo with provider-specific logo
+   - Change "FinOps Dashboard" branding to include provider short name
+   - The org unit selector dropdown uses provider's terminology:
+     AWS: "All Accounts" / "Production Workloads" / "Development & Testing" / etc.
+     Azure: "All Subscriptions" / "Production - Europe" / "Development" / etc.
+     GCP: "All Projects" / "production-web-app" / "data-analytics-prod" / etc.
+     Huawei: "All Tenants" / "Dangote Industries" / etc. (keep existing)
+   - The Building2 icon label uses config.hierarchy.orgUnitLabel
+   - The MTD Spend label stays the same
+
+4. client/src/components/layout/sidebar.tsx
+   - The "Tenants" nav item label changes per provider:
+     AWS: "Accounts"
+     Azure: "Subscriptions"
+     GCP: "Projects"
+     Huawei: "Tenants" (keep existing)
+   - Use config.hierarchy.orgUnitLabelPlural for this
+   - Active state color uses provider's primary color
+
+5. client/src/components/dashboard/service-breakdown.tsx
+   - Use provider's serviceInfo instead of Huawei's serviceInfo
+   - Colors come from provider's service definitions
+
+6. client/src/components/dashboard/region-breakdown.tsx
+   - Use provider's regionNames instead of Huawei's
+   - The "Primary Region" section at bottom should reflect provider context:
+     AWS: "US East (N. Virginia)" as primary region
+     Azure: "East US" as primary region
+     GCP: "Iowa (us-central1)" as primary region
+     Huawei: "Africa-Johannesburg" as primary region (keep existing)
+
+7. client/src/components/dashboard/kpi-cards.tsx
+   - No structural changes — same 4 KPIs
+   - Data comes from provider-aware mock generators
+
+8. client/src/components/dashboard/cost-trend-chart.tsx
+   - No structural changes — same chart
+   - Data from provider-aware generator
+
+9. client/src/components/dashboard/budget-gauge.tsx
+   - No structural changes
+
+10. client/src/components/dashboard/resource-heatmap.tsx
+    - Resource names should match provider conventions:
+      AWS: "i-0abc123def456" (EC2 instance ID format)
+      Azure: "vm-prod-web-01" (Azure resource naming convention)
+      GCP: "instance-prod-web-01" (GCP instance naming)
+      Huawei: "ecs-prod-web-01" (keep existing)
+
+11. client/src/components/dashboard/tenant-comparison.tsx
+    - Rename internally to "OrgUnitComparison" (or keep file name, change labels)
+    - Title becomes dynamic:
+      AWS: "Account Comparison"
+      Azure: "Subscription Comparison"
+      GCP: "Project Comparison"
+      Huawei: "Tenant Comparison" (keep existing)
+    - Uses provider-specific mock org units
+    - The "industry" and "country" fields from Huawei tenants become
+      "description" and "environment" for other providers (see OrgUnit interface)
+
+12. client/src/components/dashboard/recommendations-panel.tsx
+    - Recommendation types should be provider-specific:
+      AWS: rightsizing, idle_resource, savings_plans, reserved_instances,
+           s3_storage_class, ebs_optimization
+      Azure: rightsizing, idle_resource, reserved_instances, hybrid_benefit,
+             storage_tier, spot_vms
+      GCP: rightsizing, idle_resource, committed_use, sustained_use,
+           spot_vms, storage_class
+      Huawei: (keep existing 6 types)
+
+13. ALL PAGES: dashboard.tsx, analytics.tsx, resources.tsx, recommendations.tsx,
+    tenants.tsx, budgets.tsx, allocation.tsx
+    - All must use provider-aware data generators
+    - All references to serviceInfo, regionNames must be provider-dynamic
+    - tenants.tsx → page title/labels change per provider terminology
+
+================================================================================
+8. PHASE 5: Provider-Specific Pages
+================================================================================
+
+UPDATE: client/src/App.tsx
+
+New routing structure:
+  /                    → Provider selection landing page
+  /login               → Login page (receives ?provider= query param)
+  /dashboard           → Main dashboard (was previously /)
+  /analytics           → Analytics
+  /resources           → Resources
+  /recommendations     → Recommendations
+  /accounts            → Org unit management (dynamic label per provider)
+  /budgets             → Budgets
+  /allocation          → Allocation
+  /reports             → Reports
+  /settings            → Settings
+  /help                → Help
+
+NOTE: The route can stay as /accounts (or keep /tenants for backwards
+compatibility) — what changes is the PAGE TITLE, SIDEBAR LABEL, and
+all UI text referencing the organizational unit.
+
+The provider-select page has NO sidebar or header.
+The login page has NO sidebar or header.
+All other pages have the sidebar and header (as currently implemented).
+
+CREATE: client/src/pages/login.tsx
+
+Simple login page:
+- Provider logo (large, centered)
+- Provider name
+- "Sign in with [Provider] SSO" button (styled in provider's primary color):
+  AWS: "Sign in with AWS IAM Identity Center"
+  Azure: "Sign in with Microsoft Entra ID"
+  GCP: "Sign in with Google Cloud Identity"
+  Huawei: "Sign in with Huawei Cloud IAM Identity Center"
+- Email/password form as alternative (for demo/mock purposes)
+- "Back to provider selection" link
+- The login is mock — just set a user state and navigate to /dashboard
+
+================================================================================
+9. PHASE 6: SSO / Authentication Flow
+================================================================================
+
+For now, implement MOCK authentication:
+
+1. User selects provider on landing page
+2. Navigate to /login?provider=aws
+3. Login page shows provider branding + correct SSO label
+4. User clicks "Sign in with AWS IAM Identity Center" (or equivalent)
+5. Store provider + user in Zustand store
+6. Navigate to /dashboard
+7. All pages check if user is authenticated, redirect to / if not
+
+Add to Zustand store:
+  user: { name: string; email: string; role: string } | null
+  isAuthenticated: boolean
+  login: (provider, user) => void
+  logout: () => void
+
+On logout:
+  Clear user state, clear provider, navigate to /
+
+================================================================================
+10. PHASE 7: Provider-Specific Recommendations
+================================================================================
+
+Each provider has unique cost optimization strategies. The recommendations
+must reflect what's ACTUALLY available in each cloud:
+
+AWS RECOMMENDATIONS (sourced from Trusted Advisor + Compute Optimizer):
+1. Rightsizing (Compute Optimizer)
+   - "Downsize EC2 instance i-0abc123 from m5.xlarge to m5.large — avg CPU 12%"
+2. Idle Resources
+   - "Terminate idle RDS instance rds-staging with 0 connections for 21 days"
+3. Savings Plans
+   - "Purchase Compute Savings Plan: 38% savings on consistent EC2 usage"
+4. Reserved Instances
+   - "Convert 5 On-Demand EC2 instances to 1-Year All Upfront RI: save $12,400/yr"
+5. S3 Storage Class Optimization
+   - "Move 3.2TB in S3 Standard to S3 Intelligent-Tiering: save 40%"
+6. EBS Optimization
+   - "Delete 12 unattached EBS volumes (2.4TB total): save $128/mo"
+
+AZURE RECOMMENDATIONS (sourced from Azure Advisor):
+1. Rightsizing (Azure Advisor)
+   - "Resize VM prod-web-01 from Standard_D4s_v3 to Standard_D2s_v3"
+2. Idle Resources
+   - "Deallocate stopped VM staging-api (still incurring managed disk costs)"
+3. Reserved Instances
+   - "Purchase 1-year RI for 8 Standard_D2s_v3 VMs: save 40%"
+4. Hybrid Benefit
+   - "Apply Azure Hybrid Benefit to 15 Windows VMs: save $8,200/yr on licensing"
+5. Storage Tier Optimization
+   - "Move 1.8TB from Hot to Cool tier in Blob Storage: save 50%"
+6. Spot VMs
+   - "Convert dev/test workloads to Spot VMs: save up to 90%"
+
+GCP RECOMMENDATIONS (sourced from Recommender API / Active Assist):
+1. Rightsizing (Recommender API)
+   - "Resize instance prod-api-01 from n1-standard-4 to e2-standard-2"
+2. Idle Resources
+   - "Delete idle Cloud SQL instance staging-db (no connections 30 days)"
+3. Committed Use Discounts
+   - "Purchase 1-year CUD for 16 vCPUs + 64GB RAM: save 37%"
+4. Sustained Use Discounts (informational)
+   - "Current sustained use discount: 22% on Compute Engine this month"
+5. Spot VMs
+   - "Convert batch processing to Spot VMs: save 60-91%"
+6. Storage Class
+   - "Move 4.1TB from Standard to Nearline in Cloud Storage: save 50%"
+
+HUAWEI RECOMMENDATIONS: (keep existing 6 types as-is)
+- rightsizing, idle_resource, reserved_instance, storage_optimization,
+  network_optimization, database_tuning
+
+================================================================================
+11. COMPLETE PROVIDER REFERENCE
+================================================================================
+
+--- AWS ---
+Full Name: Amazon Web Services
+Short Name: AWS
+Primary Color: #FF9900 (Orange)
+Secondary Color: #232F3E (Dark Navy)
+Gradient: linear-gradient(135deg, #FF9900, #FF6600)
+Org Hierarchy: Organization → OUs (optional) → Accounts → Resources
+Billing Unit: Account (Management Account receives consolidated bill)
+Selector Label: "Account" / "All Accounts"
+SSO: AWS IAM Identity Center (formerly AWS SSO)
+Cost API: AWS Cost Explorer API, AWS Data Exports (formerly Cost & Usage Reports / CUR), Cost Optimization Hub
+Monitoring: Amazon CloudWatch
+Recommendations: AWS Trusted Advisor, AWS Compute Optimizer, Cost Optimization Hub
+Savings: Savings Plans, Reserved Instances, Spot Instances
+Chart palette: ['#FF9900', '#232F3E', '#569A31', '#3B48CC', '#8C4FFF', '#DD344C', '#01A88D', '#FF6600']
+
+--- AZURE ---
+Full Name: Microsoft Azure
+Short Name: Azure
+Primary Color: #0078D4 (Azure Blue)
+Secondary Color: #50E6FF (Light Blue)
+Gradient: linear-gradient(135deg, #0078D4, #50E6FF)
+Org Hierarchy: Entra ID Tenant → Management Groups (optional) → Subscriptions → Resource Groups → Resources
+Billing: Varies by agreement — EA (Enrollment → Departments → Accounts → Subscriptions) or MCA (Billing Account → Billing Profiles → Invoice Sections → Subscriptions)
+Billing Unit: Subscription
+Selector Label: "Subscription" / "All Subscriptions"
+SSO: Microsoft Entra ID (formerly Azure Active Directory)
+Cost API: Azure Cost Management REST API, Usage Details API
+Monitoring: Azure Monitor
+Recommendations: Azure Advisor
+Savings: Reserved Instances, Azure Savings Plans for Compute, Azure Hybrid Benefit, Spot VMs, Dev/Test Pricing
+Chart palette: ['#0078D4', '#50E6FF', '#E8731A', '#3999C6', '#326DE6', '#F2C811', '#A4262C', '#10A37F']
+
+--- GCP ---
+Full Name: Google Cloud Platform
+Short Name: GCP
+Primary Color: #4285F4 (Google Blue)
+Secondary Colors: #EA4335 (Red), #FBBC05 (Yellow), #34A853 (Green)
+Gradient: linear-gradient(135deg, #4285F4, #669DF6)
+Org Hierarchy: Organization → Folders (optional) → Projects → Resources
+Billing: Cloud Billing Account (separate from resource hierarchy) → linked Projects
+Billing Unit: Project
+Selector Label: "Project" / "All Projects"
+SSO: Google Cloud Identity / Google Workspace
+Cost API: Cloud Billing API, BigQuery billing export
+Monitoring: Cloud Monitoring (formerly Stackdriver)
+Recommendations: Recommender API, Active Assist
+Savings: Committed Use Discounts, Sustained Use Discounts (automatic), Spot VMs
+Chart palette: ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#669DF6', '#F4B400', '#0F9D58', '#AB47BC']
+
+--- HUAWEI CLOUD ---
+Full Name: Huawei Cloud
+Short Name: Huawei
+Primary Color: #C8102E (Huawei Red)
+Gradient: linear-gradient(135deg, #FF0000, #C8102E)
+Org Hierarchy: Organization → OUs (optional) → Member Accounts → Enterprise Projects → Resources
+Billing: Enterprise Center → Master Account → Unified Accounting across Member Accounts
+Billing Unit: Enterprise Project / Member Account
+Selector Label: "Tenant" / "All Tenants" (existing — keep as-is)
+SSO: Huawei Cloud IAM Identity Center
+Cost API: BSS / Customer Operation Capabilities (OCE) API
+Monitoring: Cloud Eye (CES)
+Recommendations: Cost optimization via BSS / OCE
+Savings: Reserved Instances, Savings Plans, Spot Instances
+Chart palette: (keep existing from serviceInfo colors)
+
+================================================================================
+12. FILE-BY-FILE MODIFICATION GUIDE
+================================================================================
+
+NEW FILES TO CREATE:
+1. client/src/pages/provider-select.tsx    — Landing page with 4 provider cards
+2. client/src/pages/login.tsx              — Mock login page with provider branding
+3. client/src/lib/provider-config.ts       — All provider configurations
+   (services, regions, colors, hierarchy labels, mock org units, recommendations)
+4. client/src/lib/provider-mock-data.ts    — Provider-specific mock data generators
+   (or extend existing mock-data.ts)
+
+FILES TO MODIFY:
+1. client/src/App.tsx
+   - Add new routes: / (provider-select), /login, /dashboard
+   - Wrap dashboard routes in a layout component with header+sidebar
+   - Provider-select and login pages have NO sidebar/header
+
+2. client/src/lib/finops-store.ts
+   - Add: selectedProvider, setSelectedProvider
+   - Add: user, isAuthenticated, login, logout
+   - Rename: selectedTenantId → selectedOrgUnitId
+   - Update types: HuaweiService → CloudService, HuaweiRegion → CloudRegion
+
+3. shared/schema.ts
+   - Add all AWS, Azure, GCP service types, region types, and serviceInfo/regionNames
+   - Add CloudService, CloudRegion union types
+   - Add OrgUnit interface (generic replacement for Tenant)
+   - Keep all existing Huawei types intact
+
+4. client/src/lib/mock-data.ts
+   - Refactor all generator functions to accept a provider parameter
+   - Org unit lists come from provider-config.ts
+   - Service/region distributions vary by provider
+
+5. client/src/components/layout/header.tsx
+   - Dynamic logo based on provider
+   - Dynamic branding text (e.g., "AWS FinOps" / "Azure FinOps" / etc.)
+   - Org unit selector uses provider's terminology and mock org units
+   - Selector placeholder: config.hierarchy.selectorLabel
+
+6. client/src/components/layout/sidebar.tsx
+   - Nav item label uses config.hierarchy.orgUnitLabelPlural
+     (AWS: "Accounts", Azure: "Subscriptions", GCP: "Projects", Huawei: "Tenants")
+   - Active state uses provider's primary color
+
+7. ALL dashboard components (7 files in components/dashboard/)
+   - Use provider-dynamic serviceInfo and regionNames
+   - Colors from provider config
+   - tenant-comparison.tsx: title uses config.hierarchy terms
+
+8. ALL page files (10 files in pages/)
+   - Use provider-aware mock data generators
+   - tenants.tsx: page title, subtitle, button labels, card labels all use
+     provider-specific terminology from config.hierarchy
+   - Provider-specific terminology where applicable
+
+FILES TO NOT TOUCH:
+- client/src/components/ui/* (60+ Shadcn components — leave as-is)
+- client/src/hooks/*
+- client/src/lib/queryClient.ts
+- client/src/lib/utils.ts
+- server/* (keep as-is for now)
+- All config files (package.json, tsconfig, vite.config, tailwind.config, etc.)
+- design_guidelines.md (keep for reference)
+
+================================================================================
+13. DESIGN SYSTEM PER PROVIDER
+================================================================================
+
+Each provider must FEEL like its own product while maintaining the EXACT same
+layout, component structure, spacing, and interaction patterns.
+
+AWS THEME:
+- Dark mode: bg-gray-950 base, orange accents
+- Cards: Same glassmorphism (bg-card/50 backdrop-blur-sm)
+- Primary buttons: Orange (#FF9900)
+- Active sidebar: Orange highlight
+- Charts: Orange-dominant palette
+- Header: AWS logo (left), orange accent dividers
+
+AZURE THEME:
+- Dark mode: bg-gray-950 base, blue accents
+- Cards: Same glassmorphism
+- Primary buttons: Azure Blue (#0078D4)
+- Active sidebar: Blue highlight
+- Charts: Blue-dominant palette
+- Header: Azure logo (left), blue accent dividers
+
+GCP THEME:
+- Dark mode: bg-gray-950 base, Google blue accents
+- Cards: Same glassmorphism
+- Primary buttons: Google Blue (#4285F4)
+- Active sidebar: Blue highlight
+- Charts: Google multi-color palette (blue, red, yellow, green)
+- Header: GCP logo (left), blue accent dividers
+
+HUAWEI THEME:
+- Keep exactly as-is (dark mode, red accents, current implementation)
+
+THE FOLLOWING MUST BE IDENTICAL ACROSS ALL PROVIDERS:
+- Typography scale (text-3xl, text-xl, text-lg, text-sm, text-xs)
+- Font families (Inter + JetBrains Mono)
+- Spacing (gap-6, p-6, etc.)
+- Grid layouts (grid-cols-1 md:grid-cols-2 lg:grid-cols-4)
+- Card structure (CardHeader + CardContent pattern)
+- Chart heights (h-[300px], h-[200px], h-[400px])
+- Animation timing (Framer Motion delays and durations)
+- Badge styles (variant="secondary", variant="destructive", etc.)
+- Table structure (same columns, same header styles)
+- Sidebar width (w-64 expanded, w-16 collapsed)
+- Header height (h-16)
+
+================================================================================
+14. WHAT NOT TO CHANGE
+================================================================================
+
+DO NOT:
+- Redesign any existing component layouts
+- Change the sidebar navigation structure
+- Modify the Shadcn/Radix UI components
+- Remove any existing functionality
+- Change the chart library (Recharts)
+- Change the animation library (Framer Motion)
+- Change the routing library (Wouter)
+- Change the state management (Zustand)
+- Simplify any page that exists in the Huawei version
+- Remove multi-currency support
+- Remove dark/light mode toggle
+- Remove responsive breakpoints
+- Change the build system
+- Modify server configuration
+- Use "Tenant" as a universal term — each provider has its own
+  organizational unit terminology (see Section 3)
+
+THE HUAWEI DASHBOARD IS THE STANDARD. EVERY PROVIDER MUST MATCH IT
+FEATURE-FOR-FEATURE, COMPONENT-FOR-COMPONENT. ONLY THE DATA,
+TERMINOLOGY, COLORS, AND ORGANIZATIONAL STRUCTURE CHANGE.
+
+================================================================================
+IMPLEMENTATION ORDER (Suggested)
+================================================================================
+
+Step 1:  Create provider-config.ts with all 4 provider configurations
+         (includes hierarchy labels, mock org units, services, regions, colors)
+Step 2:  Update shared/schema.ts with all provider types
+Step 3:  Update finops-store.ts with provider + auth state + generic org unit ID
+Step 4:  Create provider-select.tsx landing page
+Step 5:  Create login.tsx page with provider-specific SSO labels
+Step 6:  Update App.tsx routing (landing page, login, dashboard layout wrapper)
+Step 7:  Create provider-specific mock data (extend mock-data.ts)
+Step 8:  Update header.tsx for dynamic provider branding + org unit selector
+Step 9:  Update sidebar.tsx for provider-aware nav labels
+Step 10: Update all dashboard components to use provider config
+Step 11: Update all page components to use provider-aware data + terminology
+Step 12: Apply provider theme (CSS custom properties) on provider change
+Step 13: Test all 4 providers end-to-end
+Step 14: Polish animations and transitions between providers
+
+================================================================================
+END OF GUIDE
+================================================================================
