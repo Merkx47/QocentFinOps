@@ -24,13 +24,13 @@ import {
   Legend,
 } from 'recharts';
 import { 
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  Download,
-  Filter,
-  Calendar,
-} from 'lucide-react';
+  IconTrendingUp,
+  IconTrendingDown,
+  IconChartBar,
+  IconDownload,
+  IconFilter,
+  IconCalendarEvent,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -102,11 +102,11 @@ export default function Analytics() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
+              <IconFilter className="h-4 w-4 mr-2" />
               Filters
             </Button>
             <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
+              <IconDownload className="h-4 w-4 mr-2" />
               Export
             </Button>
           </div>
@@ -138,7 +138,7 @@ export default function Analytics() {
                           metric.trend < 0 && "bg-emerald-500/10 text-emerald-500"
                         )}
                       >
-                        {metric.trend > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {metric.trend > 0 ? <IconTrendingUp className="h-3 w-3 mr-1" /> : <IconTrendingDown className="h-3 w-3 mr-1" />}
                         {metric.trend > 0 ? '+' : ''}{metric.trend.toFixed(1)}%
                       </Badge>
                     )}
@@ -166,7 +166,7 @@ export default function Analytics() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
+                    <IconChartBar className="h-5 w-5 text-primary" />
                     Daily Cost Trend
                   </CardTitle>
                 </CardHeader>

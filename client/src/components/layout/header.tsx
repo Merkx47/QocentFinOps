@@ -18,15 +18,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import {
-  Building2,
-  Calendar,
-  Bell,
-  Settings,
-  User,
-  LogOut,
-  Moon,
-  Sun,
-} from 'lucide-react';
+  IconBuildingSkyscraper,
+  IconCalendarEvent,
+  IconBell,
+  IconSettings,
+  IconUserCircle,
+  IconLogout,
+  IconMoon,
+  IconSun,
+} from '@tabler/icons-react';
 import type { Currency, DateRangePreset } from '@shared/schema';
 import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
@@ -152,7 +152,7 @@ export function Header() {
           >
             <SelectTrigger className="w-[200px] bg-slate-50/80 border-slate-200 rounded-xl h-9 text-sm">
               <div className="flex items-center gap-2">
-                <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                <IconBuildingSkyscraper className="h-3.5 w-3.5 text-slate-400" />
                 <SelectValue placeholder={config.hierarchy.selectorLabel} />
               </div>
             </SelectTrigger>
@@ -197,7 +197,7 @@ export function Header() {
           >
             <SelectTrigger className="w-[140px] bg-slate-50/80 border-slate-200 rounded-xl h-9 text-sm">
               <div className="flex items-center gap-2">
-                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                <IconCalendarEvent className="h-3.5 w-3.5 text-slate-400" />
                 <SelectValue />
               </div>
             </SelectTrigger>
@@ -236,9 +236,9 @@ export function Header() {
             onClick={() => setIsDark(!isDark)}
           >
             {isDark ? (
-              <Sun className="h-4 w-4" />
+              <IconSun className="h-4 w-4" />
             ) : (
-              <Moon className="h-4 w-4" />
+              <IconMoon className="h-4 w-4" />
             )}
           </Button>
 
@@ -247,7 +247,7 @@ export function Header() {
             size="icon"
             className="relative h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600"
           >
-            <Bell className="h-4 w-4" />
+            <IconBell className="h-4 w-4" />
             <span
               className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
               style={{ background: config.colors.primary }}
@@ -263,7 +263,7 @@ export function Header() {
                 size="icon"
                 className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600"
               >
-                <User className="h-4 w-4" />
+                <IconUserCircle className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -277,11 +277,11 @@ export function Header() {
                 </>
               )}
               <DropdownMenuItem>
-                <User className="h-4 w-4 mr-2" />
+                <IconUserCircle className="h-4 w-4 mr-2" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Settings className="h-4 w-4 mr-2" />
+                <IconSettings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -289,7 +289,7 @@ export function Header() {
                 className="text-destructive"
                 onClick={handleLogout}
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <IconLogout className="h-4 w-4 mr-2" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>

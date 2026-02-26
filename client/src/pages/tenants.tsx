@@ -8,18 +8,18 @@ import { generateOrgUnitSummaries, getOrgUnits } from '@/lib/mock-data';
 import { getServiceInfo, getProviderConfig } from '@/lib/provider-config';
 import { useMemo, useState } from 'react';
 import { 
-  Users,
-  Search,
-  Building2,
-  Zap,
-  Lightbulb,
-  TrendingUp,
-  ArrowRight,
-  Mail,
-  Globe,
-  BarChart3,
-  Target,
-} from 'lucide-react';
+  IconUsersGroup,
+  IconSearch,
+  IconBuildingSkyscraper,
+  IconBolt,
+  IconBulb,
+  IconTrendingUp,
+  IconArrowRight,
+  IconMail,
+  IconWorld,
+  IconChartBar,
+  IconTarget,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -66,17 +66,17 @@ export default function Tenants() {
             </p>
           </div>
           <Button className="bg-primary hover:bg-primary/90">
-            <Building2 className="h-4 w-4 mr-2" />
+            <IconBuildingSkyscraper className="h-4 w-4 mr-2" />
             {config.hierarchy.addButtonLabel}
           </Button>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: `Total ${config.hierarchy.orgUnitLabelPlural}`, value: orgUnits.length, icon: Users, color: 'text-primary' },
-            { label: 'Combined Spend', value: formatCurrency(stats.totalSpend, currency), icon: BarChart3, color: 'text-emerald-500', isValue: true },
-            { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: Zap, color: 'text-amber-500' },
-            { label: 'Pending Actions', value: stats.totalRecommendations, icon: Lightbulb, color: 'text-blue-500' },
+            { label: `Total ${config.hierarchy.orgUnitLabelPlural}`, value: orgUnits.length, icon: IconUsersGroup, color: 'text-primary' },
+            { label: 'Combined Spend', value: formatCurrency(stats.totalSpend, currency), icon: IconChartBar, color: 'text-emerald-500', isValue: true },
+            { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: IconBolt, color: 'text-amber-500' },
+            { label: 'Pending Actions', value: stats.totalRecommendations, icon: IconBulb, color: 'text-blue-500' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -118,12 +118,12 @@ export default function Tenants() {
             <CardHeader className="pb-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
+                  <IconBuildingSkyscraper className="h-5 w-5 text-primary" />
                   All {config.hierarchy.orgUnitLabelPlural}
                   <Badge variant="secondary" className="ml-2">{filteredSummaries.length}</Badge>
                 </CardTitle>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={`Search ${config.hierarchy.orgUnitLabelPlural.toLowerCase()}...`}
                     value={searchQuery}
@@ -151,7 +151,7 @@ export default function Tenants() {
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-                            <Building2 className="h-6 w-6 text-primary" />
+                            <IconBuildingSkyscraper className="h-6 w-6 text-primary" />
                           </div>
                           <div>
                             <h3 className="font-semibold">{summary.orgUnit.name}</h3>
@@ -159,7 +159,7 @@ export default function Tenants() {
                               <span>{summary.orgUnit.description}</span>
                               <span>-</span>
                               <span className="flex items-center gap-1">
-                                <Globe className="h-3 w-3" />
+                                <IconWorld className="h-3 w-3" />
                                 {summary.orgUnit.environment}
                               </span>
                             </div>
@@ -210,7 +210,7 @@ export default function Tenants() {
                       <div className="flex items-center justify-between pt-3 border-t border-border">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-1">
-                            <Zap className={cn(
+                            <IconBolt className={cn(
                               "h-4 w-4",
                               summary.efficiencyScore >= 80 ? "text-emerald-500" :
                               summary.efficiencyScore >= 60 ? "text-amber-500" : "text-destructive"
@@ -218,7 +218,7 @@ export default function Tenants() {
                             <span className="text-sm font-mono">{summary.efficiencyScore}%</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Lightbulb className="h-4 w-4 text-amber-500" />
+                            <IconBulb className="h-4 w-4 text-amber-500" />
                             <span className="text-sm font-mono">{summary.recommendationCount}</span>
                           </div>
                           <Badge 
@@ -232,7 +232,7 @@ export default function Tenants() {
                             {summary.topService}
                           </Badge>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        <IconArrowRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
                   </motion.div>
@@ -241,7 +241,7 @@ export default function Tenants() {
               
               {filteredSummaries.length === 0 && (
                 <div className="text-center py-12">
-                  <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <IconUsersGroup className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No {config.hierarchy.orgUnitLabelPlural} Found</h3>
                   <p className="text-sm text-muted-foreground">
                     Try adjusting your search query.

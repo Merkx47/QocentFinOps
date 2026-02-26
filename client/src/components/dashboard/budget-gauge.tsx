@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateKPIs } from '@/lib/mock-data';
 import { useMemo } from 'react';
-import { Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { IconTarget, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -38,15 +38,15 @@ export function BudgetGauge() {
       <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
+            <IconTarget className="h-5 w-5 text-primary" />
             Budget Status
           </CardTitle>
           {percentage >= 90 ? (
-            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <IconAlertTriangle className="h-5 w-5 text-destructive" />
           ) : percentage >= 70 ? (
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <IconAlertTriangle className="h-5 w-5 text-amber-500" />
           ) : (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <IconCircleCheck className="h-5 w-5 text-emerald-500" />
           )}
         </CardHeader>
         <CardContent>

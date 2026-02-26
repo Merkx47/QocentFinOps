@@ -6,7 +6,7 @@ import { getProviderConfig, allProviders } from '@/lib/provider-config';
 import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
 import qocentLogo from '@assets/qocent-logo_1772143895241.png';
-import { ArrowRight } from 'lucide-react';
+import { IconArrowRight } from '@tabler/icons-react';
 
 const cardStyles: Record<CloudProvider, { bg: string; border: string; hoverBorder: string; iconBg: string; iconBorder: string }> = {
   aws: {
@@ -109,7 +109,7 @@ export default function ProviderSelect() {
                 </div>
 
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
-                  <ArrowRight
+                  <IconArrowRight
                     className="h-4 w-4 transition-colors duration-300"
                     style={{ color: config.colors.primary }}
                   />

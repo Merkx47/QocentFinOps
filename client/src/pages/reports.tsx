@@ -2,13 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  BarChart3,
-  FileText,
-  Download,
-  Calendar,
-  Clock,
-  Plus,
-} from 'lucide-react';
+  IconChartBar,
+  IconFileDescription,
+  IconDownload,
+  IconCalendarEvent,
+  IconClock,
+  IconPlus,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFinOpsStore } from '@/lib/finops-store';
@@ -44,7 +44,7 @@ export default function Reports() {
             </p>
           </div>
           <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4 mr-2" />
+            <IconPlus className="h-4 w-4 mr-2" />
             Create Report
           </Button>
         </motion.div>
@@ -57,7 +57,7 @@ export default function Reports() {
           <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
+                <IconChartBar className="h-5 w-5 text-primary" />
                 Scheduled Reports
               </CardTitle>
             </CardHeader>
@@ -74,18 +74,18 @@ export default function Reports() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="p-2 rounded-lg bg-primary/10">
-                          <FileText className="h-5 w-5 text-primary" />
+                          <IconFileDescription className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                           <h3 className="font-medium">{report.name}</h3>
                           <div className="flex items-center gap-3 mt-1">
                             <Badge variant="secondary" className="text-xs">{report.type}</Badge>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
+                              <IconCalendarEvent className="h-3 w-3" />
                               <span>{report.schedule}</span>
                             </div>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
+                              <IconClock className="h-3 w-3" />
                               <span>Last: {report.lastRun}</span>
                             </div>
                           </div>
@@ -93,7 +93,7 @@ export default function Reports() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
+                          <IconDownload className="h-4 w-4 mr-2" />
                           Download
                         </Button>
                         <Button variant="ghost" size="sm">

@@ -7,39 +7,39 @@ import { getServiceInfo } from '@/lib/provider-config';
 import type { RecommendationType, RecommendationImpact } from '@shared/schema';
 import { useMemo } from 'react';
 import { 
-  Lightbulb,
-  ArrowRight,
-  TrendingDown,
-  Server,
-  Database,
-  HardDrive,
-  Network,
-  Gauge,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-} from 'lucide-react';
+  IconBulb,
+  IconArrowRight,
+  IconTrendingDown,
+  IconServer2,
+  IconDatabase,
+  IconDeviceSdCard,
+  IconNetwork,
+  IconGauge,
+  IconCircleCheck,
+  IconClock,
+  IconAlertTriangle,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
-const typeIcons: Record<string, typeof Server> = {
-  rightsizing: Gauge,
-  idle_resource: Server,
-  reserved_instance: Database,
-  storage_optimization: HardDrive,
-  network_optimization: Network,
-  database_tuning: Database,
-  savings_plans: Database,
-  ebs_optimization: HardDrive,
-  hybrid_benefit: Server,
-  spot_vms: Server,
-  committed_use_discount: Database,
-  committed_use: Database,
-  sustained_use: Gauge,
-  preemptible_vms: Server,
-  gcp_cud: Database,
-  ri_conversion: Database,
+const typeIcons: Record<string, typeof IconServer2> = {
+  rightsizing: IconGauge,
+  idle_resource: IconServer2,
+  reserved_instance: IconDatabase,
+  storage_optimization: IconDeviceSdCard,
+  network_optimization: IconNetwork,
+  database_tuning: IconDatabase,
+  savings_plans: IconDatabase,
+  ebs_optimization: IconDeviceSdCard,
+  hybrid_benefit: IconServer2,
+  spot_vms: IconServer2,
+  committed_use_discount: IconDatabase,
+  committed_use: IconDatabase,
+  sustained_use: IconGauge,
+  preemptible_vms: IconServer2,
+  gcp_cud: IconDatabase,
+  ri_conversion: IconDatabase,
 };
 
 const typeLabels: Record<string, string> = {
@@ -68,9 +68,9 @@ const impactColors: Record<RecommendationImpact, string> = {
 };
 
 const statusIcons = {
-  new: AlertTriangle,
-  in_progress: Clock,
-  implemented: CheckCircle2,
+  new: IconAlertTriangle,
+  in_progress: IconClock,
+  implemented: IconCircleCheck,
   dismissed: null,
 };
 
@@ -95,7 +95,7 @@ export function RecommendationsPanel() {
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-amber-500" />
+              <IconBulb className="h-5 w-5 text-amber-500" />
               Cost Optimization Recommendations
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -112,7 +112,7 @@ export function RecommendationsPanel() {
             <Link href="/recommendations">
               <Button variant="outline" size="sm" data-testid="button-view-all-recommendations">
                 View All
-                <ArrowRight className="h-4 w-4 ml-1" />
+                <IconArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
           </div>
@@ -120,7 +120,7 @@ export function RecommendationsPanel() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="recommendations-grid">
             {topRecommendations.map((rec, index) => {
-              const Icon = typeIcons[rec.type] || Lightbulb;
+              const Icon = typeIcons[rec.type] || IconBulb;
               const StatusIcon = statusIcons[rec.status];
               
               return (
@@ -170,7 +170,7 @@ export function RecommendationsPanel() {
                             </Badge>
                           </div>
                           <div className="flex items-center gap-1 text-emerald-500">
-                            <TrendingDown className="h-3 w-3" />
+                            <IconTrendingDown className="h-3 w-3" />
                             <span className="text-sm font-mono font-semibold">
                               {formatCompactCurrency(rec.projectedSavings, currency)}
                             </span>
@@ -186,7 +186,7 @@ export function RecommendationsPanel() {
           
           {topRecommendations.length === 0 && (
             <div className="text-center py-8">
-              <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-3" />
+              <IconCircleCheck className="h-12 w-12 text-emerald-500 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
                 No new recommendations. Your cloud is optimized!
               </p>

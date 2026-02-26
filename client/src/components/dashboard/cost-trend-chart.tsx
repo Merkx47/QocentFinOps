@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { Download, TrendingUp } from 'lucide-react';
+import { IconDownload, IconTrendingUp } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 
 export function CostTrendChart() {
@@ -64,7 +64,7 @@ export function CostTrendChart() {
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <IconTrendingUp className="h-5 w-5 text-primary" />
               Cost Trend
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -83,7 +83,7 @@ export function CostTrendChart() {
               </div>
             </div>
             <Button variant="ghost" size="icon" data-testid="button-export-trend">
-              <Download className="h-4 w-4" />
+              <IconDownload className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>

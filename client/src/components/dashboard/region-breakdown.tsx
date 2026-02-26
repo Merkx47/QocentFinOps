@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { Globe2 } from 'lucide-react';
+import { IconWorld } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 
 const REGION_COLORS = [
@@ -64,7 +64,7 @@ export function RegionBreakdownChart() {
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
           <div>
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Globe2 className="h-5 w-5 text-primary" />
+              <IconWorld className="h-5 w-5 text-primary" />
               Regional Distribution
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">Cost by {providerConfig.shortName} region</p>

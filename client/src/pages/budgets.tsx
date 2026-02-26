@@ -6,13 +6,13 @@ import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/fin
 import { getOrgUnits, generateKPIs } from '@/lib/mock-data';
 import { useMemo } from 'react';
 import { 
-  Target,
-  Plus,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  Calendar,
-} from 'lucide-react';
+  IconTarget,
+  IconPlus,
+  IconAlertTriangle,
+  IconCircleCheck,
+  IconTrendingUp,
+  IconCalendarEvent,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,17 +67,17 @@ export default function Budgets() {
             </p>
           </div>
           <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4 mr-2" />
+            <IconPlus className="h-4 w-4 mr-2" />
             Create Budget
           </Button>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total Budget', value: formatCurrency(totalBudget, currency), icon: Target, color: 'text-primary', isValue: true },
-            { label: 'Total Spent', value: formatCurrency(totalSpent, currency), icon: TrendingUp, color: 'text-blue-500', isValue: true },
-            { label: 'At Risk', value: atRisk, icon: AlertTriangle, color: 'text-amber-500' },
-            { label: 'Over Budget', value: overBudget, icon: AlertTriangle, color: 'text-destructive' },
+            { label: 'Total Budget', value: formatCurrency(totalBudget, currency), icon: IconTarget, color: 'text-primary', isValue: true },
+            { label: 'Total Spent', value: formatCurrency(totalSpent, currency), icon: IconTrendingUp, color: 'text-blue-500', isValue: true },
+            { label: 'At Risk', value: atRisk, icon: IconAlertTriangle, color: 'text-amber-500' },
+            { label: 'Over Budget', value: overBudget, icon: IconAlertTriangle, color: 'text-destructive' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -118,7 +118,7 @@ export default function Budgets() {
           <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
+                <IconTarget className="h-5 w-5 text-primary" />
                 Budget Overview
               </CardTitle>
             </CardHeader>
@@ -140,17 +140,17 @@ export default function Budgets() {
                       <div className="flex items-center gap-3">
                         {budget.percentage >= 100 ? (
                           <Badge variant="destructive" className="text-xs">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            <IconAlertTriangle className="h-3 w-3 mr-1" />
                             Over Budget
                           </Badge>
                         ) : budget.percentage >= 80 ? (
                           <Badge className="text-xs bg-amber-500/10 text-amber-500">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            <IconAlertTriangle className="h-3 w-3 mr-1" />
                             At Risk
                           </Badge>
                         ) : (
                           <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-500">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            <IconCircleCheck className="h-3 w-3 mr-1" />
                             On Track
                           </Badge>
                         )}

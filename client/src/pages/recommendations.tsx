@@ -15,42 +15,42 @@ import { getServiceInfo } from '@/lib/provider-config';
 import type { RecommendationType, RecommendationImpact } from '@shared/schema';
 import { useMemo, useState } from 'react';
 import { 
-  Lightbulb,
-  TrendingDown,
-  Server,
-  Database,
-  HardDrive,
-  Network,
-  Gauge,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Filter,
-  ArrowUpRight,
-  Zap,
-  Target,
-} from 'lucide-react';
+  IconBulb,
+  IconTrendingDown,
+  IconServer2,
+  IconDatabase,
+  IconDeviceSdCard,
+  IconNetwork,
+  IconGauge,
+  IconCircleCheck,
+  IconClock,
+  IconAlertTriangle,
+  IconFilter,
+  IconArrowUpRight,
+  IconBolt,
+  IconTarget,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const typeIcons: Record<string, typeof Server> = {
-  rightsizing: Gauge,
-  idle_resource: Server,
-  reserved_instance: Database,
-  storage_optimization: HardDrive,
-  network_optimization: Network,
-  database_tuning: Database,
-  savings_plans: Database,
-  ebs_optimization: HardDrive,
-  hybrid_benefit: Server,
-  spot_vms: Server,
-  committed_use_discount: Database,
-  committed_use: Database,
-  sustained_use: Gauge,
-  preemptible_vms: Server,
-  gcp_cud: Database,
-  ri_conversion: Database,
+const typeIcons: Record<string, typeof IconServer2> = {
+  rightsizing: IconGauge,
+  idle_resource: IconServer2,
+  reserved_instance: IconDatabase,
+  storage_optimization: IconDeviceSdCard,
+  network_optimization: IconNetwork,
+  database_tuning: IconDatabase,
+  savings_plans: IconDatabase,
+  ebs_optimization: IconDeviceSdCard,
+  hybrid_benefit: IconServer2,
+  spot_vms: IconServer2,
+  committed_use_discount: IconDatabase,
+  committed_use: IconDatabase,
+  sustained_use: IconGauge,
+  preemptible_vms: IconServer2,
+  gcp_cud: IconDatabase,
+  ri_conversion: IconDatabase,
 };
 
 const typeLabels: Record<string, string> = {
@@ -79,9 +79,9 @@ const impactColors: Record<RecommendationImpact, { bg: string; text: string; bor
 };
 
 const statusInfo = {
-  new: { icon: AlertTriangle, label: 'New', color: 'text-amber-500' },
-  in_progress: { icon: Clock, label: 'In Progress', color: 'text-blue-500' },
-  implemented: { icon: CheckCircle2, label: 'Implemented', color: 'text-emerald-500' },
+  new: { icon: IconAlertTriangle, label: 'New', color: 'text-amber-500' },
+  in_progress: { icon: IconClock, label: 'In Progress', color: 'text-blue-500' },
+  implemented: { icon: IconCircleCheck, label: 'Implemented', color: 'text-emerald-500' },
   dismissed: { icon: null, label: 'Dismissed', color: 'text-muted-foreground' },
 };
 
@@ -133,17 +133,17 @@ export default function Recommendations() {
             </p>
           </div>
           <Button className="bg-primary hover:bg-primary/90" data-testid="button-implement-all">
-            <Zap className="h-4 w-4 mr-2" />
+            <IconBolt className="h-4 w-4 mr-2" />
             Implement Easy Wins
           </Button>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'New Recommendations', value: stats.newCount, icon: Lightbulb, color: 'text-amber-500' },
-            { label: 'Potential Savings', value: formatCurrency(stats.totalSavings, currency), icon: TrendingDown, color: 'text-emerald-500', isValue: true },
-            { label: 'High Impact', value: stats.highImpact, icon: Target, color: 'text-primary' },
-            { label: 'Easy Wins', value: stats.easyWins, icon: Zap, color: 'text-blue-500' },
+            { label: 'New Recommendations', value: stats.newCount, icon: IconBulb, color: 'text-amber-500' },
+            { label: 'Potential Savings', value: formatCurrency(stats.totalSavings, currency), icon: IconTrendingDown, color: 'text-emerald-500', isValue: true },
+            { label: 'High Impact', value: stats.highImpact, icon: IconTarget, color: 'text-primary' },
+            { label: 'Easy Wins', value: stats.easyWins, icon: IconBolt, color: 'text-blue-500' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -184,7 +184,7 @@ export default function Recommendations() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {(Object.entries(byType) as [RecommendationType, { count: number; savings: number }][]).map(([type, data]) => {
-                  const Icon = typeIcons[type] || Server;
+                  const Icon = typeIcons[type] || IconServer2;
                   return (
                     <div 
                       key={type}
@@ -221,7 +221,7 @@ export default function Recommendations() {
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Lightbulb className="h-5 w-5 text-amber-500" />
+                    <IconBulb className="h-5 w-5 text-amber-500" />
                     Recommendations
                     <Badge variant="secondary" className="ml-2">{filteredRecommendations.length}</Badge>
                   </CardTitle>
@@ -249,7 +249,7 @@ export default function Recommendations() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {filteredRecommendations.map((rec, index) => {
-                  const Icon = typeIcons[rec.type] || Server;
+                  const Icon = typeIcons[rec.type] || IconServer2;
                   const StatusIcon = statusInfo[rec.status].icon;
                   const impact = impactColors[rec.impact];
                   
@@ -325,7 +325,7 @@ export default function Recommendations() {
                                 <div className="text-right">
                                   <p className="text-xs text-muted-foreground">Potential Savings</p>
                                   <div className="flex items-center gap-1 text-emerald-500">
-                                    <TrendingDown className="h-4 w-4" />
+                                    <IconTrendingDown className="h-4 w-4" />
                                     <span className="text-lg font-mono font-bold">
                                       {formatCurrency(rec.projectedSavings, currency)}
                                     </span>
@@ -334,7 +334,7 @@ export default function Recommendations() {
                                 </div>
                                 <Button size="sm" className="bg-primary hover:bg-primary/90">
                                   View Details
-                                  <ArrowUpRight className="h-4 w-4 ml-1" />
+                                  <IconArrowUpRight className="h-4 w-4 ml-1" />
                                 </Button>
                               </div>
                             </div>
@@ -347,7 +347,7 @@ export default function Recommendations() {
                 
                 {filteredRecommendations.length === 0 && (
                   <div className="text-center py-12">
-                    <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
+                    <IconCircleCheck className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No Recommendations Found</h3>
                     <p className="text-sm text-muted-foreground">
                       {typeFilter !== 'all' || impactFilter !== 'all' 

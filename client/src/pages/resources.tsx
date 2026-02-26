@@ -23,19 +23,19 @@ import { generateResources } from '@/lib/mock-data';
 import { getServiceInfo, getRegionNames } from '@/lib/provider-config';
 import { useMemo, useState } from 'react';
 import { 
-  Server,
-  Search,
-  Filter,
-  Download,
-  RefreshCw,
-  Cpu,
-  MemoryStick,
-  HardDrive,
-  Network,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-} from 'lucide-react';
+  IconServer2,
+  IconSearch,
+  IconFilter,
+  IconDownload,
+  IconRefresh,
+  IconCpu,
+  IconDeviceDesktop,
+  IconDeviceSdCard,
+  IconNetwork,
+  IconAlertTriangle,
+  IconCircleCheck,
+  IconCircleX,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -95,11 +95,11 @@ export default function Resources() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <IconRefresh className="h-4 w-4 mr-2" />
               Sync
             </Button>
             <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
+              <IconDownload className="h-4 w-4 mr-2" />
               Export
             </Button>
           </div>
@@ -107,10 +107,10 @@ export default function Resources() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Running', value: stats.running, icon: CheckCircle2, color: 'text-emerald-500' },
-            { label: 'Stopped', value: stats.stopped, icon: XCircle, color: 'text-muted-foreground' },
-            { label: 'Underutilized', value: stats.underutilized, icon: AlertTriangle, color: 'text-amber-500' },
-            { label: 'Monthly Cost', value: formatCurrency(stats.totalCost, currency), icon: Server, color: 'text-primary', isValue: true },
+            { label: 'Running', value: stats.running, icon: IconCircleCheck, color: 'text-emerald-500' },
+            { label: 'Stopped', value: stats.stopped, icon: IconCircleX, color: 'text-muted-foreground' },
+            { label: 'Underutilized', value: stats.underutilized, icon: IconAlertTriangle, color: 'text-amber-500' },
+            { label: 'Monthly Cost', value: formatCurrency(stats.totalCost, currency), icon: IconServer2, color: 'text-primary', isValue: true },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -145,13 +145,13 @@ export default function Resources() {
             <CardHeader className="pb-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Server className="h-5 w-5 text-primary" />
+                  <IconServer2 className="h-5 w-5 text-primary" />
                   All Resources
                   <Badge variant="secondary" className="ml-2">{filteredResources.length}</Badge>
                 </CardTitle>
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search resources..."
                       value={searchQuery}
@@ -234,9 +234,9 @@ export default function Resources() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {resource.status === 'running' ? (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                <IconCircleCheck className="h-4 w-4 text-emerald-500" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-muted-foreground" />
+                                <IconCircleX className="h-4 w-4 text-muted-foreground" />
                               )}
                               <span className="text-sm capitalize">{resource.status}</span>
                             </div>

@@ -15,13 +15,13 @@ import { useFinOpsStore } from '@/lib/finops-store';
 import { getProviderConfig } from '@/lib/provider-config';
 import type { Currency } from '@shared/schema';
 import { 
-  Settings as SettingsIcon,
-  User,
-  Bell,
-  Shield,
-  Key,
-  Globe,
-} from 'lucide-react';
+  IconSettings as SettingsIcon,
+  IconUserCircle,
+  IconBell,
+  IconShieldCheck,
+  IconKey,
+  IconWorld,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -62,7 +62,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
+                    <IconUserCircle className="h-5 w-5 text-primary" />
                     Profile Settings
                   </CardTitle>
                   <CardDescription>Manage your account information</CardDescription>
@@ -95,7 +95,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" />
+                    <IconWorld className="h-5 w-5 text-primary" />
                     Display Preferences
                   </CardTitle>
                   <CardDescription>Customize your dashboard experience</CardDescription>
@@ -145,7 +145,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
+                    <IconBell className="h-5 w-5 text-primary" />
                     Notification Preferences
                   </CardTitle>
                   <CardDescription>Choose what notifications you receive</CardDescription>
@@ -179,7 +179,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Key className="h-5 w-5 text-primary" />
+                    <IconKey className="h-5 w-5 text-primary" />
                     Cloud API Credentials
                   </CardTitle>
                   <CardDescription>Connect to {config.name} for live data</CardDescription>
@@ -212,7 +212,7 @@ export default function Settings() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
+                    <IconShieldCheck className="h-5 w-5 text-primary" />
                     Security Settings
                   </CardTitle>
                   <CardDescription>Manage your account security</CardDescription>

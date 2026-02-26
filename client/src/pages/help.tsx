@@ -8,13 +8,13 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { 
-  HelpCircle,
-  Search,
-  BookOpen,
-  MessageCircle,
-  Mail,
-  ExternalLink,
-} from 'lucide-react';
+  IconHelp,
+  IconSearch,
+  IconBook2,
+  IconMessageCircle,
+  IconMail,
+  IconExternalLink,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFinOpsStore } from '@/lib/finops-store';
@@ -77,7 +77,7 @@ export default function Help() {
           className="mb-8"
         >
           <div className="relative max-w-xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search for help..."
               className="pl-10"
@@ -87,9 +87,9 @@ export default function Help() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
-            { icon: BookOpen, title: 'Documentation', desc: 'Read the full docs' },
-            { icon: MessageCircle, title: 'Live Chat', desc: 'Talk to our team' },
-            { icon: Mail, title: 'Email Support', desc: 'support@finops.cloud' },
+            { icon: IconBook2, title: 'Documentation', desc: 'Read the full docs' },
+            { icon: IconMessageCircle, title: 'Live Chat', desc: 'Talk to our team' },
+            { icon: IconMail, title: 'Email Support', desc: 'support@finops.cloud' },
           ].map((item, i) => (
             <motion.div
               key={item.title}
@@ -118,7 +118,7 @@ export default function Help() {
           <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-primary" />
+                <IconHelp className="h-5 w-5 text-primary" />
                 Frequently Asked Questions
               </CardTitle>
             </CardHeader>
@@ -150,7 +150,7 @@ export default function Help() {
           </p>
           <Button>
             Contact Support
-            <ExternalLink className="h-4 w-4 ml-2" />
+            <IconExternalLink className="h-4 w-4 ml-2" />
           </Button>
         </motion.div>
       </div>

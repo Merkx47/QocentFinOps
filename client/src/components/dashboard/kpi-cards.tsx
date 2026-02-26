@@ -4,15 +4,15 @@ import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/fin
 import { generateKPIs } from '@/lib/mock-data';
 import { getProviderConfig } from '@/lib/provider-config';
 import { 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet, 
-  Server, 
-  Lightbulb,
-  Target,
-  Zap,
-  PiggyBank,
-} from 'lucide-react';
+  IconTrendingUp, 
+  IconTrendingDown, 
+  IconWallet, 
+  IconServer2, 
+  IconBulb,
+  IconTarget,
+  IconBolt,
+  IconPigMoney,
+} from '@tabler/icons-react';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -23,7 +23,7 @@ interface KPICardProps {
   subtitle?: string;
   trend?: number;
   trendLabel?: string;
-  icon: typeof TrendingUp;
+  icon: typeof IconTrendingUp;
   iconGradient: string;
   delay?: number;
 }
@@ -74,9 +74,9 @@ function KPICard({
                     )}
                   >
                     {isPositiveTrend ? (
-                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <IconTrendingUp className="h-3 w-3 mr-1" />
                     ) : isNegativeTrend ? (
-                      <TrendingDown className="h-3 w-3 mr-1" />
+                      <IconTrendingDown className="h-3 w-3 mr-1" />
                     ) : null}
                     {trend > 0 ? '+' : ''}{trend}%
                   </Badge>
@@ -114,7 +114,7 @@ export function KPICards() {
         value={formatCurrency(kpis.totalSpend, currency)}
         trend={kpis.spendGrowthRate}
         trendLabel="vs last month"
-        icon={Wallet}
+        icon={IconWallet}
         iconGradient={providerGradient}
         delay={0}
       />
@@ -122,7 +122,7 @@ export function KPICards() {
         title="Budget Utilization"
         value={`${kpis.budgetUsed}%`}
         subtitle={`${formatCompactCurrency(kpis.totalSpend, currency)} of ${formatCompactCurrency(kpis.totalBudget, currency)}`}
-        icon={Target}
+        icon={IconTarget}
         iconGradient={kpis.budgetUsed > 90 ? "linear-gradient(135deg, #ef4444, #dc2626)" : kpis.budgetUsed > 70 ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #10b981, #059669)"}
         delay={0.1}
       />
@@ -130,7 +130,7 @@ export function KPICards() {
         title="Active Resources"
         value={kpis.activeResources.toLocaleString()}
         subtitle={`${formatCurrency(kpis.costPerResource, currency)} avg/resource`}
-        icon={Server}
+        icon={IconServer2}
         iconGradient="linear-gradient(135deg, #3b82f6, #2563eb)"
         delay={0.2}
       />
@@ -138,7 +138,7 @@ export function KPICards() {
         title="Potential Savings"
         value={formatCurrency(kpis.potentialSavings, currency)}
         subtitle={`${kpis.optimizationOpportunities} opportunities`}
-        icon={PiggyBank}
+        icon={IconPigMoney}
         iconGradient="linear-gradient(135deg, #10b981, #059669)"
         delay={0.3}
       />
@@ -161,7 +161,7 @@ export function SecondaryKPIs() {
               <p className="text-2xl font-bold font-mono text-slate-900">{kpis.averageEfficiency}%</p>
             </div>
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
-              <Zap className="h-5 w-5 text-white" />
+              <IconBolt className="h-5 w-5 text-white" />
             </div>
           </div>
         </CardContent>
@@ -175,7 +175,7 @@ export function SecondaryKPIs() {
               <p className="text-2xl font-bold font-mono text-slate-900">{kpis.optimizationOpportunities}</p>
             </div>
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-sm">
-              <Lightbulb className="h-5 w-5 text-white" />
+              <IconBulb className="h-5 w-5 text-white" />
             </div>
           </div>
         </CardContent>
@@ -189,7 +189,7 @@ export function SecondaryKPIs() {
               <p className="text-2xl font-bold font-mono text-slate-900">{formatCurrency(kpis.costPerResource, currency)}</p>
             </div>
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-              <Server className="h-5 w-5 text-white" />
+              <IconServer2 className="h-5 w-5 text-white" />
             </div>
           </div>
         </CardContent>

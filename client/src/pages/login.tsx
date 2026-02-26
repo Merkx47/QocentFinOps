@@ -1,6 +1,6 @@
 import { useLocation, useSearch } from 'wouter';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Mail, Lock, Shield, Zap, BarChart3 } from 'lucide-react';
+import { IconArrowLeft, IconMail, IconLock, IconShieldCheck, IconBolt, IconChartBar } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,9 +20,9 @@ function ProviderLogo({ provider }: { provider: CloudProvider }) {
 }
 
 const features = [
-  { icon: BarChart3, text: 'Real-time cost analytics & forecasting' },
-  { icon: Zap, text: 'AI-powered optimization recommendations' },
-  { icon: Shield, text: 'Enterprise-grade security & compliance' },
+  { icon: IconChartBar, text: 'Real-time cost analytics & forecasting' },
+  { icon: IconBolt, text: 'AI-powered optimization recommendations' },
+  { icon: IconShieldCheck, text: 'Enterprise-grade security & compliance' },
 ];
 
 export default function Login() {
@@ -146,7 +146,7 @@ export default function Login() {
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-slate-600 text-xs font-medium">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <IconMail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="email"
                     type="email"
@@ -161,7 +161,7 @@ export default function Login() {
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-slate-600 text-xs font-medium">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <IconLock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="password"
                     type="password"
@@ -187,7 +187,7 @@ export default function Login() {
             onClick={handleBack}
             className="flex items-center gap-2 text-slate-400 hover:text-slate-700 mt-8 mx-auto transition-colors group"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            <IconArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             <span className="text-sm">Back to provider selection</span>
           </button>
         </motion.div>

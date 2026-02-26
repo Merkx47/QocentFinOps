@@ -10,10 +10,10 @@ import {
   Tooltip,
 } from 'recharts';
 import { 
-  Wallet,
-  Layers,
-  Users,
-} from 'lucide-react';
+  IconWallet,
+  IconStack2,
+  IconUsersGroup,
+} from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -80,7 +80,7 @@ export default function Allocation() {
             <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-primary" />
+                  <IconStack2 className="h-5 w-5 text-primary" />
                   Allocation by Service
                 </CardTitle>
               </CardHeader>
@@ -153,7 +153,7 @@ export default function Allocation() {
               <Card className="bg-card/50 backdrop-blur-sm border-card-border h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
+                    <IconUsersGroup className="h-5 w-5 text-primary" />
                     Allocation by {config.hierarchy.orgUnitLabel}
                   </CardTitle>
                 </CardHeader>

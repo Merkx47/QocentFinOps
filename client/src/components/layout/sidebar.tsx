@@ -1,20 +1,20 @@
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard,
-  TrendingUp,
-  Server,
-  Lightbulb,
-  Users,
-  Settings,
-  HelpCircle,
-  ChevronLeft,
-  ChevronRight,
-  BarChart3,
-  PieChart,
-  Target,
-  Wallet,
-} from 'lucide-react';
+  IconLayoutDashboard,
+  IconTrendingUp,
+  IconServer2,
+  IconBulb,
+  IconUsersGroup,
+  IconSettings,
+  IconHelp,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChartBar,
+  IconChartPie,
+  IconTarget,
+  IconWallet,
+} from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
 import { getProviderConfig } from '@/lib/provider-config';
@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useMemo } from 'react';
 
 interface NavItem {
-  icon: typeof LayoutDashboard;
+  icon: typeof IconLayoutDashboard;
   label: string;
   href: string;
   badge?: number;
@@ -33,25 +33,25 @@ function useNavItems() {
   const config = getProviderConfig(selectedProvider);
 
   const mainNavItems: NavItem[] = useMemo(() => [
-    { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
-    { icon: TrendingUp, label: 'Cost Analytics', href: '/analytics' },
-    { icon: Server, label: 'Resources', href: '/resources' },
-    { icon: Lightbulb, label: 'Recommendations', href: '/recommendations', badge: 10 },
-    { icon: Users, label: config.hierarchy.orgUnitLabelPlural, href: '/tenants' },
+    { icon: IconLayoutDashboard, label: 'Overview', href: '/dashboard' },
+    { icon: IconTrendingUp, label: 'Cost Analytics', href: '/analytics' },
+    { icon: IconServer2, label: 'Resources', href: '/resources' },
+    { icon: IconBulb, label: 'Recommendations', href: '/recommendations', badge: 10 },
+    { icon: IconUsersGroup, label: config.hierarchy.orgUnitLabelPlural, href: '/tenants' },
   ], [config.hierarchy.orgUnitLabelPlural]);
 
   return mainNavItems;
 }
 
 const secondaryNavItems: NavItem[] = [
-  { icon: Target, label: 'Budgets', href: '/budgets' },
-  { icon: Wallet, label: 'Cost Allocation', href: '/allocation' },
-  { icon: BarChart3, label: 'Reports', href: '/reports' },
+  { icon: IconTarget, label: 'Budgets', href: '/budgets' },
+  { icon: IconWallet, label: 'Cost Allocation', href: '/allocation' },
+  { icon: IconChartBar, label: 'Reports', href: '/reports' },
 ];
 
 const bottomNavItems: NavItem[] = [
-  { icon: Settings, label: 'Settings', href: '/settings' },
-  { icon: HelpCircle, label: 'Help', href: '/help' },
+  { icon: IconSettings, label: 'Settings', href: '/settings' },
+  { icon: IconHelp, label: 'Help', href: '/help' },
 ];
 
 function NavLink({
@@ -180,11 +180,11 @@ export function Sidebar() {
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         >
           {sidebarCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <IconChevronRight className="h-4 w-4" />
           ) : (
             <>
               <span className="text-[11px] mr-2">Collapse</span>
-              <ChevronLeft className="h-4 w-4" />
+              <IconChevronLeft className="h-4 w-4" />
             </>
           )}
         </Button>
