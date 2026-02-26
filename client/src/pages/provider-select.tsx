@@ -8,6 +8,37 @@ import huaweiLogo from '@assets/image_1764758201045.png';
 import qocentLogo from '@assets/qocent-logo_1772143895241.png';
 import { ArrowRight } from 'lucide-react';
 
+const cardStyles: Record<CloudProvider, { bg: string; border: string; hoverBorder: string; iconBg: string; iconBorder: string }> = {
+  aws: {
+    bg: 'bg-orange-50/60',
+    border: 'border-orange-200/50',
+    hoverBorder: 'hover:border-orange-300',
+    iconBg: 'bg-orange-100/60',
+    iconBorder: 'border-orange-200/40',
+  },
+  azure: {
+    bg: 'bg-blue-50/60',
+    border: 'border-blue-200/50',
+    hoverBorder: 'hover:border-blue-300',
+    iconBg: 'bg-blue-100/60',
+    iconBorder: 'border-blue-200/40',
+  },
+  gcp: {
+    bg: 'bg-sky-50/60',
+    border: 'border-sky-200/50',
+    hoverBorder: 'hover:border-sky-300',
+    iconBg: 'bg-sky-100/60',
+    iconBorder: 'border-sky-200/40',
+  },
+  huawei: {
+    bg: 'bg-red-50/60',
+    border: 'border-red-200/50',
+    hoverBorder: 'hover:border-red-300',
+    iconBg: 'bg-red-100/60',
+    iconBorder: 'border-red-200/40',
+  },
+};
+
 function ProviderIcon({ provider }: { provider: CloudProvider }) {
   if (provider === 'aws') return <AWSLogo className="h-10 w-auto" />;
   if (provider === 'azure') return <AzureLogo className="h-10 w-auto" />;
@@ -50,6 +81,7 @@ export default function ProviderSelect() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {allProviders.map((providerId, index) => {
             const config = getProviderConfig(providerId);
+            const styles = cardStyles[providerId];
             return (
               <motion.button
                 key={providerId}
@@ -63,14 +95,9 @@ export default function ProviderSelect() {
                 whileHover={{ y: -4 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleSelect(providerId)}
-                className="group relative flex items-center gap-5 p-5 rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm shadow-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-300/80 text-left"
+                className={`group relative flex items-center gap-5 p-5 rounded-2xl border ${styles.bg} ${styles.border} ${styles.hoverBorder} backdrop-blur-sm shadow-sm cursor-pointer transition-all duration-300 hover:shadow-lg text-left`}
               >
-                <div
-                  className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-[0.03] transition-opacity duration-300"
-                  style={{ backgroundColor: config.colors.primary }}
-                />
-
-                <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-center group-hover:border-slate-200 transition-colors duration-300">
+                <div className={`flex-shrink-0 w-16 h-16 rounded-xl ${styles.iconBg} border ${styles.iconBorder} flex items-center justify-center transition-colors duration-300`}>
                   <ProviderIcon provider={providerId} />
                 </div>
 
@@ -78,10 +105,10 @@ export default function ProviderSelect() {
                   <h2 className="text-base font-semibold text-slate-900 mb-0.5">
                     {config.shortName}
                   </h2>
-                  <p className="text-sm text-slate-400 leading-snug">{config.tagline}</p>
+                  <p className="text-sm text-slate-500 leading-snug">{config.tagline}</p>
                 </div>
 
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
                   <ArrowRight
                     className="h-4 w-4 transition-colors duration-300"
                     style={{ color: config.colors.primary }}
