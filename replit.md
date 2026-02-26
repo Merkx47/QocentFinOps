@@ -33,6 +33,7 @@ A unified multi-cloud FinOps (Financial Operations) platform supporting AWS, Azu
 - `client/src/components/dashboard/` - Dashboard widget components (8 widgets)
 - `client/src/components/layout/` - Header and sidebar
 - `client/src/components/provider-logos.tsx` - Real SVG logo components for AWS/Azure/GCP
+- `client/src/components/finops-assistant.tsx` - Floating FinOps AI Assistant chatbot
 - `client/src/components/ui/` - Shadcn UI components (DO NOT MODIFY — still uses lucide-react)
 - `client/src/lib/provider-config.ts` - Provider configurations (colors, services, regions, hierarchy, terminology)
 - `client/src/lib/finops-store.ts` - Zustand store with multi-provider state
@@ -75,9 +76,12 @@ A unified multi-cloud FinOps (Financial Operations) platform supporting AWS, Azu
 - **Unit Economics**: Cost-per-unit metrics (API call, user, GB, transaction), 30-day trends
 - **Waste Detection**: Idle/orphaned/oversized resource detection, category breakdown, actionable list
 - Analytics, resources, budgets, allocation, reports, settings, help pages
-- Multi-currency support (USD, GBP, EUR, JPY)
+- Multi-currency support (USD, GBP, EUR, JPY, NGN, CNY)
+- Multi-language selector (EN, FR, ES, ZH, AR, PT) in header and settings
 - Dark/light mode (default: light), responsive design, Framer Motion animations
 - Collapsible sidebar with dynamic provider terminology
+- **Qocent FinOps Assistant**: Floating chat widget (bottom-right FAB) with knowledge-base responses, provider-aware, available on all dashboard pages
+- All CRUD/action buttons are functional with toast feedback (Terminate, Fix, Save, Export, Download, Create, etc.)
 
 ### Mock Data Generators (mock-data.ts)
 - `generateCostTrend`, `generateServiceBreakdown`, `generateRegionBreakdown`

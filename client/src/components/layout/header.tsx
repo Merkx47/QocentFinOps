@@ -27,7 +27,7 @@ import {
   IconMoon,
   IconSun,
 } from '@tabler/icons-react';
-import type { Currency, DateRangePreset } from '@shared/schema';
+import type { Currency, DateRangePreset, Language } from '@shared/schema';
 import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
 import huaweiLogo from '@assets/image_1764758201045.png';
 
@@ -42,6 +42,15 @@ const currencyOptions: { value: Currency; label: string; flag: string }[] = [
   { value: 'JPY', label: 'JPY', flag: '🇯🇵' },
   { value: 'NGN', label: 'NGN', flag: '🇳🇬' },
   { value: 'CNY', label: 'CNY', flag: '🇨🇳' },
+];
+
+const languageOptions: { value: Language; label: string; flag: string }[] = [
+  { value: 'en', label: 'EN', flag: '🇺🇸' },
+  { value: 'fr', label: 'FR', flag: '🇫🇷' },
+  { value: 'es', label: 'ES', flag: '🇪🇸' },
+  { value: 'zh', label: 'ZH', flag: '🇨🇳' },
+  { value: 'ar', label: 'AR', flag: '🇸🇦' },
+  { value: 'pt', label: 'PT', flag: '🇧🇷' },
 ];
 
 const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
@@ -63,6 +72,8 @@ export function Header() {
   const {
     currency,
     setCurrency,
+    language,
+    setLanguage,
     selectedOrgUnitId,
     setSelectedOrgUnitId,
     selectedProvider,
@@ -221,6 +232,25 @@ export function Header() {
             </SelectTrigger>
             <SelectContent>
               {currencyOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center gap-2">
+                    <span>{option.flag}</span>
+                    <span>{option.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={language}
+            onValueChange={(value) => setLanguage(value as Language)}
+          >
+            <SelectTrigger className="w-[90px] bg-slate-50/80 border-slate-200 rounded-xl h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {languageOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   <div className="flex items-center gap-2">
                     <span>{option.flag}</span>

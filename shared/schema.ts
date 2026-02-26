@@ -20,6 +20,9 @@ export type User = typeof users.$inferSelect;
 
 // ==================== FINOPS TYPES ====================
 
+// Language types
+export type Language = 'en' | 'fr' | 'es' | 'zh' | 'ar' | 'pt';
+
 // Currency types
 export type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY' | 'NGN' | 'CNY';
 

@@ -16,9 +16,11 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Budgets() {
   const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { toast } = useToast();
   
   const budgetData = useMemo(() => {
     const orgUnits = getOrgUnits(selectedProvider);
@@ -66,7 +68,7 @@ export default function Budgets() {
               Track and manage cloud spending budgets
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Create Budget", description: "Budget creation wizard will be available soon" })}>
             <IconPlus className="h-4 w-4 mr-2" />
             Create Budget
           </Button>

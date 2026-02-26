@@ -25,6 +25,7 @@ import Tagging from "@/pages/tagging";
 import UnitEconomics from "@/pages/unit-economics";
 import Waste from "@/pages/waste";
 import NotFound from "@/pages/not-found";
+import { FinOpsAssistant } from "@/components/finops-assistant";
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -36,6 +37,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      <FinOpsAssistant />
     </div>
   );
 }

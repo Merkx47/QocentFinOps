@@ -12,6 +12,7 @@ import {
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFinOpsStore } from '@/lib/finops-store';
+import { useToast } from '@/hooks/use-toast';
 import { getProviderConfig } from '@/lib/provider-config';
 
 function useReports() {
@@ -28,6 +29,7 @@ function useReports() {
 
 export default function Reports() {
   const mockReports = useReports();
+  const { toast } = useToast();
   return (
     <ScrollArea className="h-full">
       <div className="p-6 max-w-[1920px] mx-auto" data-testid="reports-page">
@@ -43,7 +45,7 @@ export default function Reports() {
               Generate and schedule cost reports
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Create Report", description: "Report creation wizard will be available soon" })}>
             <IconPlus className="h-4 w-4 mr-2" />
             Create Report
           </Button>
@@ -92,11 +94,11 @@ export default function Reports() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => toast({ title: "Downloading Report", description: `Preparing ${report.name} for download...` })}>
                           <IconDownload className="h-4 w-4 mr-2" />
                           Download
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => toast({ title: "Report Running", description: `${report.name} is being generated...` })}>
                           Run Now
                         </Button>
                       </div>

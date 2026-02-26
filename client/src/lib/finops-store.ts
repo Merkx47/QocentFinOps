@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Currency, DateRange } from '@shared/schema';
+import type { Currency, DateRange, Language } from '@shared/schema';
 import type { CloudProvider } from './provider-config';
 import { getProviderConfig } from './provider-config';
 
@@ -20,6 +20,9 @@ interface FinOpsStore {
 
   currency: Currency;
   setCurrency: (currency: Currency) => void;
+
+  language: Language;
+  setLanguage: (lang: Language) => void;
 
   selectedOrgUnitId: string | 'all';
   setSelectedOrgUnitId: (orgUnitId: string | 'all') => void;
@@ -58,6 +61,9 @@ export const useFinOpsStore = create<FinOpsStore>((set) => ({
 
   currency: 'USD',
   setCurrency: (currency) => set({ currency }),
+
+  language: 'en',
+  setLanguage: (language) => set({ language }),
 
   selectedOrgUnitId: 'all',
   setSelectedOrgUnitId: (selectedOrgUnitId) => set({ selectedOrgUnitId }),

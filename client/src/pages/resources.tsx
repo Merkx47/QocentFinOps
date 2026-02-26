@@ -39,6 +39,7 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 const getUtilizationBadge = (value: number) => {
   if (value < 20) return { label: 'Low', color: 'text-destructive bg-destructive/10' };
@@ -50,6 +51,7 @@ const getUtilizationBadge = (value: number) => {
 
 export default function Resources() {
   const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -94,11 +96,11 @@ export default function Resources() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => toast({ title: "Syncing Resources", description: "Synchronizing resource inventory..." })}>
               <IconRefresh className="h-4 w-4 mr-2" />
               Sync
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => toast({ title: "Exporting Resources", description: "Preparing resource inventory export..." })}>
               <IconDownload className="h-4 w-4 mr-2" />
               Export
             </Button>

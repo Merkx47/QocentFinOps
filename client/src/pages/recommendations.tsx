@@ -33,6 +33,7 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 const typeIcons: Record<string, typeof IconServer2> = {
   rightsizing: IconGauge,
@@ -87,6 +88,7 @@ const statusInfo = {
 
 export default function Recommendations() {
   const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { toast } = useToast();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [impactFilter, setImpactFilter] = useState<string>('all');
   
@@ -132,7 +134,7 @@ export default function Recommendations() {
               AI-powered recommendations to reduce your cloud spend
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90" data-testid="button-implement-all">
+          <Button className="bg-primary hover:bg-primary/90" data-testid="button-implement-all" onClick={() => toast({ title: "Implementing Recommendations", description: `Processing ${stats.easyWins} easy-win optimizations...` })}>
             <IconBolt className="h-4 w-4 mr-2" />
             Implement Easy Wins
           </Button>
@@ -332,7 +334,7 @@ export default function Recommendations() {
                                     <span className="text-xs">/mo</span>
                                   </div>
                                 </div>
-                                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Recommendation Details", description: "Opening detailed analysis for this recommendation..." })}>
                                   View Details
                                   <IconArrowUpRight className="h-4 w-4 ml-1" />
                                 </Button>

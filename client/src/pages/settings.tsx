@@ -12,8 +12,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFinOpsStore } from '@/lib/finops-store';
+import { useToast } from '@/hooks/use-toast';
 import { getProviderConfig } from '@/lib/provider-config';
-import type { Currency } from '@shared/schema';
+import type { Currency, Language } from '@shared/schema';
 import { 
   IconSettings as SettingsIcon,
   IconUserCircle,
@@ -26,7 +27,8 @@ import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Settings() {
-  const { currency, setCurrency, selectedProvider } = useFinOpsStore();
+  const { currency, setCurrency, language, setLanguage, selectedProvider } = useFinOpsStore();
+  const { toast } = useToast();
   const config = getProviderConfig(selectedProvider);
   const creds = config.terminology.credentialLabels;
 
@@ -82,7 +84,7 @@ export default function Settings() {
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" placeholder="admin@company.com" />
                   </div>
-                  <Button>Save Changes</Button>
+                  <Button onClick={() => toast({ title: "Settings Saved", description: "Your profile settings have been updated" })}>Save Changes</Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -114,6 +116,22 @@ export default function Settings() {
                         <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
                         <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
                         <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Display Language</Label>
+                    <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">🇺🇸 EN - English</SelectItem>
+                        <SelectItem value="fr">🇫🇷 FR - Français</SelectItem>
+                        <SelectItem value="es">🇪🇸 ES - Español</SelectItem>
+                        <SelectItem value="zh">🇨🇳 ZH - 中文</SelectItem>
+                        <SelectItem value="ar">🇸🇦 AR - العربية</SelectItem>
+                        <SelectItem value="pt">🇧🇷 PT - Português</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -199,7 +217,7 @@ export default function Settings() {
                     <Label htmlFor="key3">{creds.key3}</Label>
                     <Input id="key3" placeholder={`Enter your ${creds.key3.toLowerCase()}`} />
                   </div>
-                  <Button>Connect to {config.shortName}</Button>
+                  <Button onClick={() => toast({ title: "Connection Initiated", description: `Connecting to ${config.shortName}...` })}>Connect to {config.shortName}</Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -231,7 +249,7 @@ export default function Settings() {
                     <Label>Change Password</Label>
                     <div className="flex gap-2">
                       <Input type="password" placeholder="New password" />
-                      <Button variant="outline">Update</Button>
+                      <Button variant="outline" onClick={() => toast({ title: "Password Updated", description: "Your password has been changed successfully" })}>Update</Button>
                     </div>
                   </div>
                 </CardContent>

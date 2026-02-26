@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
+import { useToast } from '@/hooks/use-toast';
 import { generateWasteAnalysis } from '@/lib/mock-data';
 import { useMemo, useState } from 'react';
 import {
@@ -51,8 +52,10 @@ const categoryIcons: Record<string, React.ElementType> = {
 
 export default function WasteDetection() {
   const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'cost' | 'lastActive'>('cost');
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   const wasteData = useMemo(
     () => generateWasteAnalysis(selectedOrgUnitId, selectedProvider),
@@ -60,7 +63,7 @@ export default function WasteDetection() {
   );
 
   const filteredResources = useMemo(() => {
-    let resources = wasteData.resources;
+    let resources = wasteData.resources.filter((r) => !removedIds.has(r.id));
     if (categoryFilter !== 'all') {
       resources = resources.filter((r) => r.reason === categoryFilter);
     }
@@ -72,15 +75,15 @@ export default function WasteDetection() {
       );
     }
     return resources;
-  }, [wasteData.resources, categoryFilter, sortBy]);
+  }, [wasteData.resources, categoryFilter, sortBy, removedIds]);
 
   const quickWins = useMemo(
     () =>
       wasteData.resources
-        .filter((r) => r.monthlyCost > 50)
+        .filter((r) => r.monthlyCost > 50 && !removedIds.has(r.id))
         .sort((a, b) => b.monthlyCost - a.monthlyCost)
         .slice(0, 5),
-    [wasteData.resources]
+    [wasteData.resources, removedIds]
   );
 
   const pieData = wasteData.categories.map((cat) => ({
@@ -296,7 +299,7 @@ export default function WasteDetection() {
                       <span className="text-sm font-bold font-mono text-red-500">
                         {formatCurrency(item.monthlyCost, currency)}
                       </span>
-                      <Button variant="destructive" size="sm" className="h-7 text-xs px-2">
+                      <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={() => { setRemovedIds(prev => new Set(prev).add(item.id)); toast({ title: "Quick Fix Applied", description: `${item.name} remediation initiated` }); }}>
                         <IconTrash className="h-3 w-3 mr-1" />
                         Fix
                       </Button>
@@ -412,7 +415,7 @@ export default function WasteDetection() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="destructive" size="sm" className="h-7 text-xs">
+                          <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={() => { setRemovedIds(prev => new Set(prev).add(resource.id)); toast({ title: "Resource Terminated", description: `${resource.name} has been scheduled for termination` }); }}>
                             <IconTrash className="h-3 w-3 mr-1" />
                             Terminate
                           </Button>

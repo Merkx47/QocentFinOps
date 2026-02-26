@@ -34,6 +34,7 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 const CHART_COLORS = [
   '#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA',
@@ -42,6 +43,7 @@ const CHART_COLORS = [
 
 export default function Analytics() {
   const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
+  const { toast } = useToast();
   
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
   const regionNames = useMemo(() => getRegionNames(selectedProvider), [selectedProvider]);
@@ -101,11 +103,11 @@ export default function Analytics() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => toast({ title: "Filters", description: "Advanced filter panel will be available soon" })}>
               <IconFilter className="h-4 w-4 mr-2" />
               Filters
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => toast({ title: "Exporting Data", description: "Preparing analytics data for export..." })}>
               <IconDownload className="h-4 w-4 mr-2" />
               Export
             </Button>
