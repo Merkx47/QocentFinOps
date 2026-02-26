@@ -18,6 +18,12 @@ import Allocation from "@/pages/allocation";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import Help from "@/pages/help";
+import Anomalies from "@/pages/anomalies";
+import SavingsPlans from "@/pages/savings-plans";
+import Forecasting from "@/pages/forecasting";
+import Tagging from "@/pages/tagging";
+import UnitEconomics from "@/pages/unit-economics";
+import Waste from "@/pages/waste";
 import NotFound from "@/pages/not-found";
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -58,6 +64,12 @@ function DashboardRouter() {
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
       <Route path="/help" component={Help} />
+      <Route path="/anomalies" component={Anomalies} />
+      <Route path="/savings-plans" component={SavingsPlans} />
+      <Route path="/forecasting" component={Forecasting} />
+      <Route path="/tagging" component={Tagging} />
+      <Route path="/unit-economics" component={UnitEconomics} />
+      <Route path="/waste" component={Waste} />
       <Route component={NotFound} />
     </Switch>
   );

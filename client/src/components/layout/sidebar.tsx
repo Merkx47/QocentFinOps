@@ -14,6 +14,12 @@ import {
   IconChartPie,
   IconTarget,
   IconWallet,
+  IconAlertTriangle,
+  IconChartLine,
+  IconPigMoney,
+  IconTag,
+  IconReceipt,
+  IconTrash,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
@@ -43,10 +49,22 @@ function useNavItems() {
   return mainNavItems;
 }
 
+const intelligenceNavItems: NavItem[] = [
+  { icon: IconAlertTriangle, label: 'Anomaly Detection', href: '/anomalies' },
+  { icon: IconChartLine, label: 'Cost Forecast', href: '/forecasting' },
+  { icon: IconPigMoney, label: 'Savings Plans', href: '/savings-plans' },
+];
+
 const secondaryNavItems: NavItem[] = [
   { icon: IconTarget, label: 'Budgets', href: '/budgets' },
   { icon: IconWallet, label: 'Cost Allocation', href: '/allocation' },
   { icon: IconChartBar, label: 'Reports', href: '/reports' },
+];
+
+const governanceNavItems: NavItem[] = [
+  { icon: IconTag, label: 'Tag Compliance', href: '/tagging' },
+  { icon: IconReceipt, label: 'Unit Economics', href: '/unit-economics' },
+  { icon: IconTrash, label: 'Waste Detection', href: '/waste' },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -146,10 +164,46 @@ export function Sidebar() {
         <nav className="px-2.5 space-y-0.5">
           {!sidebarCollapsed && (
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-3 mb-2">
+              Intelligence
+            </p>
+          )}
+          {intelligenceNavItems.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              isCollapsed={sidebarCollapsed}
+              isActive={location === item.href}
+            />
+          ))}
+        </nav>
+
+        <div className={cn("my-3 mx-3 border-t border-slate-100", sidebarCollapsed && "mx-2")} />
+
+        <nav className="px-2.5 space-y-0.5">
+          {!sidebarCollapsed && (
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-3 mb-2">
               Financial
             </p>
           )}
           {secondaryNavItems.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              isCollapsed={sidebarCollapsed}
+              isActive={location === item.href}
+            />
+          ))}
+        </nav>
+
+        <div className={cn("my-3 mx-3 border-t border-slate-100", sidebarCollapsed && "mx-2")} />
+
+        <nav className="px-2.5 space-y-0.5">
+          {!sidebarCollapsed && (
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-3 mb-2">
+              Governance
+            </p>
+          )}
+          {governanceNavItems.map((item) => (
             <NavLink
               key={item.href}
               item={item}

@@ -289,6 +289,523 @@ export function generateResources(tenantId: string | 'all', provider: CloudProvi
   return resources;
 }
 
+// ==================== ANOMALY DETECTION ====================
+
+export interface CostAnomaly {
+  id: string;
+  date: string;
+  service: string;
+  region: string;
+  expectedCost: number;
+  actualCost: number;
+  deviation: number;
+  severity: 'critical' | 'warning' | 'info';
+  status: 'new' | 'investigating' | 'resolved';
+  description: string;
+  orgUnitId: string;
+}
+
+export function generateAnomalies(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): CostAnomaly[] {
+  const config = getProviderConfig(provider);
+  const services = config.services.slice(0, 8);
+  const regions = config.regions.slice(0, 5);
+  const orgUnits = getOrgUnits(provider);
+  const today = new Date();
+
+  const anomalyTemplates: { deviation: number; severity: 'critical' | 'warning' | 'info'; descTemplate: string }[] = [
+    { deviation: 340, severity: 'critical', descTemplate: 'Sudden spike in {service} costs — possible misconfigured auto-scaling or runaway process.' },
+    { deviation: 185, severity: 'critical', descTemplate: 'Unusual {service} activity detected in {region}. Costs nearly tripled compared to baseline.' },
+    { deviation: 95, severity: 'warning', descTemplate: '{service} spending in {region} is significantly above the 30-day moving average.' },
+    { deviation: 72, severity: 'warning', descTemplate: 'Gradual cost increase in {service} over the past week exceeds normal variance.' },
+    { deviation: 58, severity: 'warning', descTemplate: '{service} data transfer costs spiked — possible large data migration or backup job.' },
+    { deviation: 45, severity: 'info', descTemplate: '{service} costs slightly elevated. May be related to end-of-month batch processing.' },
+    { deviation: 38, severity: 'info', descTemplate: 'Minor cost increase in {service} — within seasonal variance but worth monitoring.' },
+    { deviation: 280, severity: 'critical', descTemplate: 'Critical: {service} in {region} showing 3x normal spend. Immediate investigation recommended.' },
+    { deviation: 120, severity: 'warning', descTemplate: '{service} storage costs growing faster than expected — review data retention policies.' },
+    { deviation: 25, severity: 'info', descTemplate: '{service} compute costs slightly above forecast. No action required yet.' },
+    { deviation: 210, severity: 'critical', descTemplate: 'Anomalous network egress from {service} in {region} — possible data exfiltration or misconfiguration.' },
+    { deviation: 65, severity: 'warning', descTemplate: '{service} API call volume and associated costs are 65% above baseline.' },
+  ];
+
+  const statuses: ('new' | 'investigating' | 'resolved')[] = ['new', 'new', 'new', 'investigating', 'investigating', 'resolved'];
+
+  return anomalyTemplates.map((template, i) => {
+    const service = services[i % services.length];
+    const region = regions[i % regions.length];
+    const oId = orgUnitId === 'all' ? orgUnits[i % orgUnits.length].id : orgUnitId;
+    const daysAgo = Math.floor(Math.random() * 14);
+    const date = new Date(today);
+    date.setDate(date.getDate() - daysAgo);
+    const expectedCost = 500 + Math.random() * 3000;
+    const actualCost = expectedCost * (1 + template.deviation / 100);
+
+    return {
+      id: `anomaly-${i + 1}`,
+      date: date.toISOString().split('T')[0],
+      service,
+      region,
+      expectedCost: Math.round(expectedCost * 100) / 100,
+      actualCost: Math.round(actualCost * 100) / 100,
+      deviation: template.deviation,
+      severity: template.severity,
+      status: statuses[i % statuses.length],
+      description: template.descTemplate.replace('{service}', service).replace('{region}', getRegionNames(provider)[region] || region),
+      orgUnitId: oId,
+    };
+  });
+}
+
+// ==================== SAVINGS PLANS / RI COVERAGE ====================
+
+export interface Commitment {
+  id: string;
+  type: string;
+  service: string;
+  term: '1-year' | '3-year';
+  monthlyCommitment: number;
+  monthlyOnDemand: number;
+  utilization: number;
+  coverage: number;
+  expirationDate: string;
+  status: 'active' | 'expiring' | 'expired';
+}
+
+export interface SavingsPlanData {
+  commitments: Commitment[];
+  summary: {
+    totalCommitment: number;
+    totalOnDemand: number;
+    coveragePercent: number;
+    utilizationPercent: number;
+    totalSavings: number;
+    expiringIn30Days: number;
+  };
+}
+
+export function generateSavingsPlans(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): SavingsPlanData {
+  const config = getProviderConfig(provider);
+  const services = config.services.slice(0, 6);
+  const today = new Date();
+
+  const typesByProvider: Record<CloudProvider, string[]> = {
+    aws: ['Reserved Instance', 'Savings Plan', 'Reserved Instance', 'Savings Plan', 'Reserved Instance', 'Savings Plan', 'Reserved Instance'],
+    azure: ['Reserved Instance', 'Reserved Instance', 'Hybrid Benefit', 'Reserved Instance', 'Hybrid Benefit', 'Reserved Instance', 'Reserved Instance'],
+    gcp: ['Committed Use Discount', 'Committed Use Discount', 'Sustained Use', 'Committed Use Discount', 'Sustained Use', 'Committed Use Discount', 'Committed Use Discount'],
+    huawei: ['Reserved Instance', 'Reserved Instance', 'Reserved Instance', 'Reserved Instance', 'Reserved Instance', 'Reserved Instance', 'Reserved Instance'],
+  };
+
+  const types = typesByProvider[provider];
+
+  const commitments: Commitment[] = types.map((type, i) => {
+    const term = i % 3 === 0 ? '3-year' : '1-year' as const;
+    const monthlyCommitment = 800 + Math.random() * 4000;
+    const monthlyOnDemand = monthlyCommitment * (1.3 + Math.random() * 0.5);
+    const utilization = 60 + Math.random() * 38;
+    const coverage = 50 + Math.random() * 45;
+
+    const expirationDays = i < 2 ? Math.floor(Math.random() * 25) + 5 : Math.floor(Math.random() * 300) + 30;
+    const expDate = new Date(today);
+    expDate.setDate(expDate.getDate() + expirationDays);
+
+    let status: 'active' | 'expiring' | 'expired' = 'active';
+    if (expirationDays <= 30) status = 'expiring';
+    if (i === types.length - 1) { status = 'expired'; expDate.setDate(today.getDate() - 15); }
+
+    return {
+      id: `commitment-${i + 1}`,
+      type,
+      service: services[i % services.length],
+      term,
+      monthlyCommitment: Math.round(monthlyCommitment * 100) / 100,
+      monthlyOnDemand: Math.round(monthlyOnDemand * 100) / 100,
+      utilization: Math.round(utilization * 10) / 10,
+      coverage: Math.round(coverage * 10) / 10,
+      expirationDate: expDate.toISOString().split('T')[0],
+      status,
+    };
+  });
+
+  const activeCommitments = commitments.filter(c => c.status !== 'expired');
+  const totalCommitment = activeCommitments.reduce((s, c) => s + c.monthlyCommitment, 0);
+  const totalOnDemand = activeCommitments.reduce((s, c) => s + c.monthlyOnDemand, 0);
+  const avgUtil = activeCommitments.reduce((s, c) => s + c.utilization, 0) / (activeCommitments.length || 1);
+  const avgCoverage = activeCommitments.reduce((s, c) => s + c.coverage, 0) / (activeCommitments.length || 1);
+
+  return {
+    commitments,
+    summary: {
+      totalCommitment: Math.round(totalCommitment * 100) / 100,
+      totalOnDemand: Math.round(totalOnDemand * 100) / 100,
+      coveragePercent: Math.round(avgCoverage * 10) / 10,
+      utilizationPercent: Math.round(avgUtil * 10) / 10,
+      totalSavings: Math.round((totalOnDemand - totalCommitment) * 100) / 100,
+      expiringIn30Days: commitments.filter(c => c.status === 'expiring').length,
+    },
+  };
+}
+
+// ==================== COST FORECASTING ====================
+
+export interface ForecastPoint {
+  date: string;
+  amount: number;
+  upperBound?: number;
+  lowerBound?: number;
+  isHistorical: boolean;
+}
+
+export interface ForecastScenario {
+  name: string;
+  label: string;
+  monthlyProjection: number;
+  quarterlyProjection: number;
+  color: string;
+}
+
+export interface ForecastData {
+  dataPoints: ForecastPoint[];
+  projectedMonthEnd: number;
+  projectedQuarterEnd: number;
+  budgetBreachDate: string | null;
+  confidenceLevel: number;
+  scenarios: ForecastScenario[];
+}
+
+export function generateForecast(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): ForecastData {
+  const multiplier = orgUnitId === 'all' ? 1 : 0.15;
+  const providerMult = provider === 'aws' ? 1.2 : provider === 'azure' ? 1.1 : provider === 'gcp' ? 1.0 : 0.9;
+  const baseAmount = 45000 * multiplier * providerMult;
+  const today = new Date();
+  const dataPoints: ForecastPoint[] = [];
+
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dayOfWeek = date.getDay();
+    const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.85 : 1;
+    const amount = baseAmount * weekendFactor + (Math.random() - 0.5) * baseAmount * 0.2 + (30 - i) * 60 * multiplier;
+
+    dataPoints.push({
+      date: date.toISOString().split('T')[0],
+      amount: Math.round(amount * 100) / 100,
+      isHistorical: true,
+    });
+  }
+
+  const lastAmount = dataPoints[dataPoints.length - 1].amount;
+  for (let i = 1; i <= 90; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() + i);
+    const growth = i * 40 * multiplier;
+    const base = lastAmount + growth + (Math.random() - 0.5) * 2000 * multiplier;
+    const spread = 1000 + i * 80 * multiplier;
+
+    dataPoints.push({
+      date: date.toISOString().split('T')[0],
+      amount: Math.round(base * 100) / 100,
+      upperBound: Math.round((base + spread) * 100) / 100,
+      lowerBound: Math.round(Math.max(0, base - spread) * 100) / 100,
+      isHistorical: false,
+    });
+  }
+
+  const monthlyBase = lastAmount * 30;
+  const quarterlyBase = lastAmount * 90;
+
+  return {
+    dataPoints,
+    projectedMonthEnd: Math.round(monthlyBase * 1.05 * 100) / 100,
+    projectedQuarterEnd: Math.round(quarterlyBase * 1.12 * 100) / 100,
+    budgetBreachDate: Math.random() > 0.4 ? (() => { const d = new Date(today); d.setDate(d.getDate() + 45 + Math.floor(Math.random() * 30)); return d.toISOString().split('T')[0]; })() : null,
+    confidenceLevel: Math.round((82 + Math.random() * 12) * 10) / 10,
+    scenarios: [
+      { name: 'optimistic', label: 'Optimistic', monthlyProjection: Math.round(monthlyBase * 0.9), quarterlyProjection: Math.round(quarterlyBase * 0.88), color: '#10b981' },
+      { name: 'baseline', label: 'Baseline', monthlyProjection: Math.round(monthlyBase * 1.05), quarterlyProjection: Math.round(quarterlyBase * 1.12), color: '#3b82f6' },
+      { name: 'pessimistic', label: 'Pessimistic', monthlyProjection: Math.round(monthlyBase * 1.2), quarterlyProjection: Math.round(quarterlyBase * 1.35), color: '#ef4444' },
+      { name: 'with_recommendations', label: 'With Optimizations', monthlyProjection: Math.round(monthlyBase * 0.82), quarterlyProjection: Math.round(quarterlyBase * 0.78), color: '#8b5cf6' },
+    ],
+  };
+}
+
+// ==================== TAG COMPLIANCE ====================
+
+export interface TagRule {
+  tag: string;
+  compliant: number;
+  nonCompliant: number;
+  percentage: number;
+}
+
+export interface OrgUnitCompliance {
+  orgUnitId: string;
+  orgUnitName: string;
+  compliance: number;
+  untaggedCost: number;
+}
+
+export interface TagViolation {
+  resourceId: string;
+  resourceName: string;
+  service: string;
+  missingTags: string[];
+  monthlyCost: number;
+}
+
+export interface TagComplianceData {
+  overall: {
+    totalResources: number;
+    taggedResources: number;
+    compliancePercent: number;
+    untaggedCost: number;
+  };
+  requiredTags: TagRule[];
+  byOrgUnit: OrgUnitCompliance[];
+  topViolations: TagViolation[];
+}
+
+export function generateTagCompliance(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): TagComplianceData {
+  const config = getProviderConfig(provider);
+  const orgUnits = getOrgUnits(provider);
+  const services = config.services.slice(0, 8);
+
+  const tagsByProvider: Record<CloudProvider, string[]> = {
+    aws: ['Environment', 'CostCenter', 'Owner', 'Project', 'Team'],
+    azure: ['environment', 'cost-center', 'owner', 'department', 'application'],
+    gcp: ['env', 'cost-center', 'team', 'project', 'managed-by'],
+    huawei: ['environment', 'cost_center', 'owner', 'project', 'department'],
+  };
+
+  const tags = tagsByProvider[provider];
+  const totalResources = orgUnitId === 'all' ? 847 : 120;
+  const complianceBase = 65 + Math.random() * 20;
+
+  const requiredTags: TagRule[] = tags.map(tag => {
+    const pct = complianceBase + (Math.random() - 0.5) * 30;
+    const compliant = Math.round(totalResources * pct / 100);
+    return {
+      tag,
+      compliant,
+      nonCompliant: totalResources - compliant,
+      percentage: Math.round(pct * 10) / 10,
+    };
+  });
+
+  const taggedResources = Math.round(totalResources * complianceBase / 100);
+  const untaggedCost = (totalResources - taggedResources) * (80 + Math.random() * 200);
+
+  const byOrgUnit: OrgUnitCompliance[] = orgUnits.map(ou => ({
+    orgUnitId: ou.id,
+    orgUnitName: ou.name,
+    compliance: Math.round((55 + Math.random() * 40) * 10) / 10,
+    untaggedCost: Math.round((2000 + Math.random() * 15000) * 100) / 100,
+  }));
+
+  const topViolations: TagViolation[] = Array.from({ length: 10 }, (_, i) => {
+    const service = services[i % services.length];
+    const missingCount = 1 + Math.floor(Math.random() * 3);
+    const missingTags = tags.slice(0, missingCount);
+    return {
+      resourceId: `res-untagged-${i + 1}`,
+      resourceName: `${service.toLowerCase()}-untagged-${String(i + 1).padStart(2, '0')}`,
+      service,
+      missingTags,
+      monthlyCost: Math.round((50 + Math.random() * 800) * 100) / 100,
+    };
+  });
+
+  return {
+    overall: {
+      totalResources,
+      taggedResources,
+      compliancePercent: Math.round(complianceBase * 10) / 10,
+      untaggedCost: Math.round(untaggedCost * 100) / 100,
+    },
+    requiredTags,
+    byOrgUnit,
+    topViolations,
+  };
+}
+
+// ==================== UNIT ECONOMICS ====================
+
+export interface UnitMetric {
+  name: string;
+  value: number;
+  unit: string;
+  trend: number;
+  description: string;
+}
+
+export interface UnitEconomicsTrend {
+  date: string;
+  costPerUnit: number;
+  transactions: number;
+}
+
+export interface ServiceUnitCost {
+  service: string;
+  costPerUnit: number;
+  totalCost: number;
+  units: number;
+}
+
+export interface UnitEconomicsData {
+  metrics: UnitMetric[];
+  trend: UnitEconomicsTrend[];
+  topServices: ServiceUnitCost[];
+}
+
+export function generateUnitEconomics(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): UnitEconomicsData {
+  const config = getProviderConfig(provider);
+  const services = config.services.slice(0, 8);
+  const multiplier = orgUnitId === 'all' ? 1 : 0.3;
+
+  const metrics: UnitMetric[] = [
+    { name: 'Cost per API Call', value: Math.round((0.0012 + Math.random() * 0.0008) * 10000) / 10000, unit: 'per call', trend: -(2 + Math.random() * 8), description: 'Average cost per API request across all endpoints' },
+    { name: 'Cost per Active User', value: Math.round((2.4 + Math.random() * 1.8) * 100) / 100, unit: 'per user/mo', trend: -(1 + Math.random() * 5), description: 'Monthly cloud cost per active platform user' },
+    { name: 'Cost per GB Stored', value: Math.round((0.023 + Math.random() * 0.015) * 1000) / 1000, unit: 'per GB/mo', trend: Math.random() > 0.5 ? -(Math.random() * 3) : Math.random() * 2, description: 'Average storage cost across all tiers and services' },
+    { name: 'Cost per Transaction', value: Math.round((0.045 + Math.random() * 0.03) * 1000) / 1000, unit: 'per txn', trend: -(3 + Math.random() * 6), description: 'Average infrastructure cost per business transaction' },
+  ];
+
+  const today = new Date();
+  const trend: UnitEconomicsTrend[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const baseCPU = 0.05 - (29 - i) * 0.0003;
+    trend.push({
+      date: date.toISOString().split('T')[0],
+      costPerUnit: Math.round((baseCPU + (Math.random() - 0.5) * 0.01) * 10000) / 10000,
+      transactions: Math.round((150000 + Math.random() * 50000) * multiplier),
+    });
+  }
+
+  const topServices: ServiceUnitCost[] = services.map(service => {
+    const totalCost = (3000 + Math.random() * 12000) * multiplier;
+    const units = Math.round(50000 + Math.random() * 200000);
+    return {
+      service,
+      costPerUnit: Math.round((totalCost / units) * 10000) / 10000,
+      totalCost: Math.round(totalCost * 100) / 100,
+      units,
+    };
+  }).sort((a, b) => b.costPerUnit - a.costPerUnit);
+
+  return { metrics, trend, topServices };
+}
+
+// ==================== WASTE DETECTION ====================
+
+export interface WasteCategory {
+  name: string;
+  count: number;
+  monthlyCost: number;
+}
+
+export interface WastedResource {
+  id: string;
+  name: string;
+  service: string;
+  type: string;
+  region: string;
+  monthlyCost: number;
+  reason: string;
+  lastActive: string;
+  orgUnitId: string;
+}
+
+export interface WasteAnalysisData {
+  summary: {
+    totalWaste: number;
+    wastePercentage: number;
+    idleResources: number;
+    orphanedVolumes: number;
+    oversizedInstances: number;
+    unattachedIPs: number;
+  };
+  categories: WasteCategory[];
+  resources: WastedResource[];
+}
+
+export function generateWasteAnalysis(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): WasteAnalysisData {
+  const config = getProviderConfig(provider);
+  const services = config.services.slice(0, 6);
+  const regions = config.regions.slice(0, 4);
+  const orgUnits = getOrgUnits(provider);
+
+  const reasons = [
+    'Idle for 30+ days',
+    'CPU utilization < 5%',
+    'No network traffic for 14 days',
+    'Unattached volume',
+    'Orphaned snapshot',
+    'Unused elastic IP',
+    'Oversized — using < 10% capacity',
+    'Stopped instance still incurring storage costs',
+    'Unused load balancer',
+    'Empty container registry',
+    'Expired SSL certificate resource',
+    'Development resource left running',
+    'Test environment not cleaned up',
+    'Duplicate backup',
+    'Oversized database instance',
+    'Unused NAT gateway',
+    'Idle function with provisioned concurrency',
+    'Unattached network interface',
+  ];
+
+  const resourceCount = orgUnitId === 'all' ? 18 : 8;
+  const resources: WastedResource[] = Array.from({ length: resourceCount }, (_, i) => {
+    const service = services[i % services.length];
+    const region = regions[i % regions.length];
+    const oId = orgUnitId === 'all' ? orgUnits[i % orgUnits.length].id : orgUnitId;
+    const prefix = getResourceNamePrefix(provider, service);
+    const daysAgo = 7 + Math.floor(Math.random() * 60);
+    const lastActive = new Date();
+    lastActive.setDate(lastActive.getDate() - daysAgo);
+
+    return {
+      id: `waste-${i + 1}`,
+      name: `${prefix}waste-${String(i + 1).padStart(2, '0')}`,
+      service,
+      type: getResourceType(provider, service),
+      region,
+      monthlyCost: Math.round((20 + Math.random() * 450) * 100) / 100,
+      reason: reasons[i % reasons.length],
+      lastActive: lastActive.toISOString().split('T')[0],
+      orgUnitId: oId,
+    };
+  });
+
+  const totalWaste = resources.reduce((s, r) => s + r.monthlyCost, 0);
+  const idleResources = resources.filter(r => r.reason.includes('Idle') || r.reason.includes('idle') || r.reason.includes('CPU')).length;
+  const orphanedVolumes = resources.filter(r => r.reason.includes('Unattached') || r.reason.includes('Orphaned')).length;
+  const oversized = resources.filter(r => r.reason.includes('Oversized') || r.reason.includes('oversized')).length;
+  const unattachedIPs = resources.filter(r => r.reason.includes('elastic IP') || r.reason.includes('Unused')).length;
+
+  const categories: WasteCategory[] = [
+    { name: 'Idle Resources', count: idleResources || 4, monthlyCost: Math.round(totalWaste * 0.35 * 100) / 100 },
+    { name: 'Orphaned Volumes', count: orphanedVolumes || 3, monthlyCost: Math.round(totalWaste * 0.25 * 100) / 100 },
+    { name: 'Oversized Instances', count: oversized || 3, monthlyCost: Math.round(totalWaste * 0.28 * 100) / 100 },
+    { name: 'Unattached IPs/NICs', count: unattachedIPs || 2, monthlyCost: Math.round(totalWaste * 0.12 * 100) / 100 },
+  ];
+
+  return {
+    summary: {
+      totalWaste: Math.round(totalWaste * 100) / 100,
+      wastePercentage: Math.round((8 + Math.random() * 12) * 10) / 10,
+      idleResources: idleResources || 4,
+      orphanedVolumes: orphanedVolumes || 3,
+      oversizedInstances: oversized || 3,
+      unattachedIPs: unattachedIPs || 2,
+    },
+    categories,
+    resources,
+  };
+}
+
+// ==================== ORG UNIT SUMMARIES ====================
+
 export function generateOrgUnitSummaries(provider: CloudProvider): OrgUnitSummary[] {
   const orgUnits = getOrgUnits(provider);
   return orgUnits.map(orgUnit => {
