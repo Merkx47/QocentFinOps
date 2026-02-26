@@ -94,7 +94,7 @@ export default function Allocation() {
                       stroke="hsl(var(--background))"
                       fill="#8884d8"
                       content={({ x, y, width, height, name, fill }: any) => {
-                        if (width < 50 || height < 30) return null;
+                        if (!name || width < 50 || height < 30) return null;
                         return (
                           <g>
                             <rect
@@ -167,7 +167,7 @@ export default function Allocation() {
                         stroke="hsl(var(--background))"
                         fill="#8884d8"
                         content={({ x, y, width, height, name, fill }: any) => {
-                          if (width < 60 || height < 35) return null;
+                          if (!name || width < 60 || height < 35) return null;
                           const displayName = name.length > 12 ? name.slice(0, 10) + '...' : name;
                           return (
                             <g>
