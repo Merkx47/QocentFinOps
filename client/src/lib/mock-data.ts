@@ -1,27 +1,14 @@
 import type {
-  Tenant,
   Resource,
   Recommendation,
   DashboardKPIs,
   CostTrendPoint,
   ServiceBreakdown,
   RegionBreakdown,
-  TenantSummary,
   OrgUnitSummary,
 } from '@shared/schema';
 import type { CloudProvider, OrgUnit } from './provider-config';
 import { getProviderConfig, getServiceInfo, getRegionNames } from './provider-config';
-
-export const mockTenants: Tenant[] = [
-  { id: 'tenant-1', name: 'Dangote Industries', industry: 'Manufacturing', country: 'Nigeria', contactName: 'Chidi Okonkwo', contactEmail: 'chidi.okonkwo@dangote.com', budget: 250000, efficiencyScore: 78, status: 'active' },
-  { id: 'tenant-2', name: 'MTN Nigeria', industry: 'Telecommunications', country: 'Nigeria', contactName: 'Amaka Eze', contactEmail: 'amaka.eze@mtn.ng', budget: 500000, efficiencyScore: 85, status: 'active' },
-  { id: 'tenant-3', name: 'Flutterwave', industry: 'Fintech', country: 'Nigeria', contactName: 'Oluwaseun Adeyemi', contactEmail: 'oluwaseun@flutterwave.com', budget: 180000, efficiencyScore: 92, status: 'active' },
-  { id: 'tenant-4', name: 'Safaricom Kenya', industry: 'Telecommunications', country: 'Kenya', contactName: 'Wanjiku Kamau', contactEmail: 'wanjiku.kamau@safaricom.co.ke', budget: 320000, efficiencyScore: 81, status: 'active' },
-  { id: 'tenant-5', name: 'Standard Bank SA', industry: 'Banking', country: 'South Africa', contactName: 'Thabo Molefe', contactEmail: 'thabo.molefe@standardbank.co.za', budget: 420000, efficiencyScore: 75, status: 'active' },
-  { id: 'tenant-6', name: 'Andela', industry: 'Technology', country: 'Nigeria', contactName: 'Ngozi Obi', contactEmail: 'ngozi.obi@andela.com', budget: 150000, efficiencyScore: 88, status: 'active' },
-  { id: 'tenant-7', name: 'Jumia Group', industry: 'E-commerce', country: 'Nigeria', contactName: 'Emmanuel Nwosu', contactEmail: 'emmanuel.nwosu@jumia.com', budget: 280000, efficiencyScore: 72, status: 'active' },
-  { id: 'tenant-8', name: 'Interswitch', industry: 'Fintech', country: 'Nigeria', contactName: 'Chioma Ikenna', contactEmail: 'chioma.ikenna@interswitch.com', budget: 200000, efficiencyScore: 84, status: 'active' },
-];
 
 export function getOrgUnits(provider: CloudProvider): OrgUnit[] {
   return getProviderConfig(provider).orgUnits;
@@ -31,8 +18,9 @@ export function generateCostTrend(tenantId: string | 'all', provider: CloudProvi
   const data: CostTrendPoint[] = [];
   const today = new Date();
 
-  let baseAmount = tenantId === 'all' ? 45000 : 8000;
-  const variance = tenantId === 'all' ? 8000 : 1500;
+  const providerMultiplier = provider === 'aws' ? 1.2 : provider === 'azure' ? 1.1 : provider === 'gcp' ? 1.0 : 0.9;
+  let baseAmount = (tenantId === 'all' ? 45000 : 8000) * providerMultiplier;
+  const variance = (tenantId === 'all' ? 8000 : 1500) * providerMultiplier;
 
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today);
@@ -299,23 +287,6 @@ export function generateResources(tenantId: string | 'all', provider: CloudProvi
   }
 
   return resources;
-}
-
-export function generateTenantSummaries(): TenantSummary[] {
-  return mockTenants.map(tenant => {
-    const kpis = generateKPIs(tenant.id, 'huawei');
-    const services = generateServiceBreakdown(tenant.id, 'huawei');
-    const recommendations = generateRecommendations(tenant.id, 'huawei');
-
-    return {
-      tenant,
-      totalSpend: kpis.totalSpend,
-      budgetUsage: kpis.budgetUsed,
-      efficiencyScore: tenant.efficiencyScore,
-      topService: services[0]?.service || 'ECS',
-      recommendationCount: recommendations.length,
-    };
-  });
 }
 
 export function generateOrgUnitSummaries(provider: CloudProvider): OrgUnitSummary[] {

@@ -11,16 +11,23 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useFinOpsStore } from '@/lib/finops-store';
+import { getProviderConfig } from '@/lib/provider-config';
 
-const mockReports = [
-  { id: '1', name: 'Monthly Cost Summary', type: 'Cost Analysis', schedule: 'Monthly', lastRun: '2024-01-01' },
-  { id: '2', name: 'Resource Utilization Report', type: 'Utilization', schedule: 'Weekly', lastRun: '2024-01-03' },
-  { id: '3', name: 'Optimization Opportunities', type: 'Recommendations', schedule: 'Daily', lastRun: '2024-01-05' },
-  { id: '4', name: 'Organization Cost Breakdown', type: 'Cost Allocation', schedule: 'Monthly', lastRun: '2024-01-01' },
-  { id: '5', name: 'Budget vs Actual', type: 'Budget', schedule: 'Weekly', lastRun: '2024-01-04' },
-];
+function useReports() {
+  const { selectedProvider } = useFinOpsStore();
+  const config = getProviderConfig(selectedProvider);
+  return [
+    { id: '1', name: `Monthly ${config.shortName} Cost Summary`, type: 'Cost Analysis', schedule: 'Monthly', lastRun: '2024-01-01' },
+    { id: '2', name: 'Resource Utilization Report', type: 'Utilization', schedule: 'Weekly', lastRun: '2024-01-03' },
+    { id: '3', name: 'Optimization Opportunities', type: 'Recommendations', schedule: 'Daily', lastRun: '2024-01-05' },
+    { id: '4', name: `${config.hierarchy.orgUnitLabel} Cost Breakdown`, type: 'Cost Allocation', schedule: 'Monthly', lastRun: '2024-01-01' },
+    { id: '5', name: 'Budget vs Actual', type: 'Budget', schedule: 'Weekly', lastRun: '2024-01-04' },
+  ];
+}
 
 export default function Reports() {
+  const mockReports = useReports();
   return (
     <ScrollArea className="h-full">
       <div className="p-6 max-w-[1920px] mx-auto" data-testid="reports-page">

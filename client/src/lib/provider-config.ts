@@ -47,6 +47,11 @@ export interface ProviderConfig {
     ssoName: string;
     ssoButtonLabel: string;
     monitoring: string;
+    credentialLabels: {
+      key1: string;
+      key2: string;
+      key3: string;
+    };
   };
   orgUnits: OrgUnit[];
   recommendationTypes: { type: string; label: string }[];
@@ -86,6 +91,7 @@ const awsConfig: ProviderConfig = {
     ssoName: 'AWS IAM Identity Center',
     ssoButtonLabel: 'Sign in with AWS IAM Identity Center',
     monitoring: 'CloudWatch',
+    credentialLabels: { key1: 'Access Key ID', key2: 'Secret Access Key', key3: 'Account ID' },
   },
   orgUnits: [
     { id: 'acct-001', name: 'Production Workloads', description: 'Primary production environment', environment: 'Prod', primaryRegion: 'us-east-1', contactName: 'Sarah Chen', contactEmail: 'sarah.chen@company.com', budget: 350000, efficiencyScore: 82, status: 'active' },
@@ -141,6 +147,7 @@ const azureConfig: ProviderConfig = {
     ssoName: 'Microsoft Entra ID',
     ssoButtonLabel: 'Sign in with Microsoft Entra ID',
     monitoring: 'Azure Monitor',
+    credentialLabels: { key1: 'Client ID', key2: 'Client Secret', key3: 'Tenant ID' },
   },
   orgUnits: [
     { id: 'sub-001', name: 'Production - Europe', description: 'European production workloads', environment: 'Prod', primaryRegion: 'westeurope', contactName: 'Emma Schmidt', contactEmail: 'emma.schmidt@company.com', budget: 300000, efficiencyScore: 80, status: 'active' },
@@ -196,6 +203,7 @@ const gcpConfig: ProviderConfig = {
     ssoName: 'Google Cloud Identity',
     ssoButtonLabel: 'Sign in with Google Cloud Identity',
     monitoring: 'Cloud Monitoring',
+    credentialLabels: { key1: 'Service Account Key', key2: 'Project Number', key3: 'Project ID' },
   },
   orgUnits: [
     { id: 'proj-001', name: 'production-web-app', description: 'Production web application', environment: 'Prod Web', primaryRegion: 'us-central1', contactName: 'Alex Rivera', contactEmail: 'alex.rivera@company.com', budget: 280000, efficiencyScore: 85, status: 'active' },
@@ -251,6 +259,7 @@ const huaweiConfig: ProviderConfig = {
     ssoName: 'Huawei Cloud IAM Identity Center',
     ssoButtonLabel: 'Sign in with Huawei Cloud IAM Identity Center',
     monitoring: 'Cloud Eye (CES)',
+    credentialLabels: { key1: 'Access Key (AK)', key2: 'Secret Key (SK)', key3: 'Project ID' },
   },
   orgUnits: [
     { id: 'tenant-1', name: 'Dangote Industries', description: 'Manufacturing', environment: 'Manufacturing', primaryRegion: 'af-south-1', contactName: 'Chidi Okonkwo', contactEmail: 'chidi.okonkwo@dangote.com', budget: 250000, efficiencyScore: 78, status: 'active' },

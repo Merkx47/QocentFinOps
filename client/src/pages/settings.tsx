@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFinOpsStore } from '@/lib/finops-store';
+import { getProviderConfig } from '@/lib/provider-config';
 import type { Currency } from '@shared/schema';
 import { 
   Settings as SettingsIcon,
@@ -25,7 +26,9 @@ import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Settings() {
-  const { currency, setCurrency } = useFinOpsStore();
+  const { currency, setCurrency, selectedProvider } = useFinOpsStore();
+  const config = getProviderConfig(selectedProvider);
+  const creds = config.terminology.credentialLabels;
 
   return (
     <ScrollArea className="h-full">
@@ -68,16 +71,16 @@ export default function Settings() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="Chidi" />
+                      <Input id="firstName" placeholder="Admin" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Okonkwo" />
+                      <Input id="lastName" placeholder="User" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="chidi@company.com" />
+                    <Input id="email" type="email" placeholder="admin@company.com" />
                   </div>
                   <Button>Save Changes</Button>
                 </CardContent>
@@ -114,15 +117,17 @@ export default function Settings() {
                   </div>
                   <div className="space-y-2">
                     <Label>Timezone</Label>
-                    <Select defaultValue="africa-lagos">
+                    <Select defaultValue="utc">
                       <SelectTrigger className="w-[250px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="africa-lagos">Africa/Lagos (WAT)</SelectItem>
-                        <SelectItem value="africa-johannesburg">Africa/Johannesburg (SAST)</SelectItem>
-                        <SelectItem value="africa-nairobi">Africa/Nairobi (EAT)</SelectItem>
                         <SelectItem value="utc">UTC</SelectItem>
+                        <SelectItem value="america-new_york">America/New York (EST)</SelectItem>
+                        <SelectItem value="europe-london">Europe/London (GMT)</SelectItem>
+                        <SelectItem value="europe-berlin">Europe/Berlin (CET)</SelectItem>
+                        <SelectItem value="asia-tokyo">Asia/Tokyo (JST)</SelectItem>
+                        <SelectItem value="asia-singapore">Asia/Singapore (SGT)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -177,22 +182,22 @@ export default function Settings() {
                     <Key className="h-5 w-5 text-primary" />
                     Cloud API Credentials
                   </CardTitle>
-                  <CardDescription>Connect to your cloud provider for live data</CardDescription>
+                  <CardDescription>Connect to {config.name} for live data</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="accessKey">Access Key (AK)</Label>
-                    <Input id="accessKey" type="password" placeholder="Enter your access key" />
+                    <Label htmlFor="key1">{creds.key1}</Label>
+                    <Input id="key1" type="password" placeholder={`Enter your ${creds.key1.toLowerCase()}`} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="secretKey">Secret Key (SK)</Label>
-                    <Input id="secretKey" type="password" placeholder="Enter your secret key" />
+                    <Label htmlFor="key2">{creds.key2}</Label>
+                    <Input id="key2" type="password" placeholder={`Enter your ${creds.key2.toLowerCase()}`} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="projectId">Project ID</Label>
-                    <Input id="projectId" placeholder="Enter your project ID" />
+                    <Label htmlFor="key3">{creds.key3}</Label>
+                    <Input id="key3" placeholder={`Enter your ${creds.key3.toLowerCase()}`} />
                   </div>
-                  <Button>Connect to Cloud Provider</Button>
+                  <Button>Connect to {config.shortName}</Button>
                 </CardContent>
               </Card>
             </motion.div>
