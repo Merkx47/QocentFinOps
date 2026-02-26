@@ -63,7 +63,10 @@ export const useFinOpsStore = create<FinOpsStore>((set) => ({
   setCurrency: (currency) => set({ currency }),
 
   language: 'en',
-  setLanguage: (language) => set({ language }),
+  setLanguage: (language) => {
+    set({ language });
+    triggerGoogleTranslate(language);
+  },
 
   selectedOrgUnitId: 'all',
   setSelectedOrgUnitId: (selectedOrgUnitId) => set({ selectedOrgUnitId }),
@@ -84,6 +87,62 @@ export const useFinOpsStore = create<FinOpsStore>((set) => ({
   sidebarCollapsed: false,
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 }));
+
+const languageToGoogleCode: Record<string, string> = {
+  en: 'en',
+  fr: 'fr',
+  es: 'es',
+  zh: 'zh-CN',
+  ar: 'ar',
+  pt: 'pt',
+};
+
+let reloadAttempted = false;
+
+function waitForGoogleTranslate(maxWait = 3000): Promise<HTMLSelectElement | null> {
+  return new Promise((resolve) => {
+    const el = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    if (el) { resolve(el); return; }
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (combo) { clearInterval(interval); resolve(combo); return; }
+      if (Date.now() - start > maxWait) { clearInterval(interval); resolve(null); }
+    }, 200);
+  });
+}
+
+function triggerGoogleTranslate(lang: Language) {
+  const code = languageToGoogleCode[lang] || 'en';
+
+  if (code === 'en') {
+    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname;
+    const selectEl = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    if (selectEl) {
+      selectEl.value = 'en';
+      selectEl.dispatchEvent(new Event('change'));
+    } else if (!reloadAttempted) {
+      reloadAttempted = true;
+      window.location.reload();
+    }
+    return;
+  }
+
+  document.cookie = `googtrans=/en/${code}; path=/;`;
+  document.cookie = `googtrans=/en/${code}; path=/; domain=.${window.location.hostname}`;
+
+  waitForGoogleTranslate().then((selectEl) => {
+    if (selectEl) {
+      selectEl.value = code;
+      selectEl.dispatchEvent(new Event('change'));
+      reloadAttempted = false;
+    } else if (!reloadAttempted) {
+      reloadAttempted = true;
+      window.location.reload();
+    }
+  });
+}
 
 export function applyProviderTheme(provider: CloudProvider) {
   const config = getProviderConfig(provider);

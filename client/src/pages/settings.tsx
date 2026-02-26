@@ -122,18 +122,19 @@ export default function Settings() {
                   <div className="space-y-2">
                     <Label>Display Language</Label>
                     <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-[250px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="en">🇺🇸 EN - English</SelectItem>
-                        <SelectItem value="fr">🇫🇷 FR - Français</SelectItem>
-                        <SelectItem value="es">🇪🇸 ES - Español</SelectItem>
-                        <SelectItem value="zh">🇨🇳 ZH - 中文</SelectItem>
-                        <SelectItem value="ar">🇸🇦 AR - العربية</SelectItem>
-                        <SelectItem value="pt">🇧🇷 PT - Português</SelectItem>
+                        <SelectItem value="en">English — English</SelectItem>
+                        <SelectItem value="fr">Fran&#231;ais — French</SelectItem>
+                        <SelectItem value="es">Espa&#241;ol — Spanish</SelectItem>
+                        <SelectItem value="pt">Portugu&#234;s — Portuguese</SelectItem>
+                        <SelectItem value="zh">&#31616;&#20307;&#20013;&#25991; — Chinese</SelectItem>
+                        <SelectItem value="ar">&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577; — Arabic</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground mt-1">Powered by Google Translate</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Timezone</Label>

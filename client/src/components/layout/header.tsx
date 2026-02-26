@@ -26,6 +26,8 @@ import {
   IconLogout,
   IconMoon,
   IconSun,
+  IconLanguage,
+  IconCheck,
 } from '@tabler/icons-react';
 import type { Currency, DateRangePreset, Language } from '@shared/schema';
 import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
@@ -44,13 +46,13 @@ const currencyOptions: { value: Currency; label: string; flag: string }[] = [
   { value: 'CNY', label: 'CNY', flag: '🇨🇳' },
 ];
 
-const languageOptions: { value: Language; label: string; flag: string }[] = [
-  { value: 'en', label: 'EN', flag: '🇺🇸' },
-  { value: 'fr', label: 'FR', flag: '🇫🇷' },
-  { value: 'es', label: 'ES', flag: '🇪🇸' },
-  { value: 'zh', label: 'ZH', flag: '🇨🇳' },
-  { value: 'ar', label: 'AR', flag: '🇸🇦' },
-  { value: 'pt', label: 'PT', flag: '🇧🇷' },
+const languageOptions: { value: Language; nativeName: string; englishName: string }[] = [
+  { value: 'en', nativeName: 'English', englishName: 'English' },
+  { value: 'fr', nativeName: 'Fran\u00e7ais', englishName: 'French' },
+  { value: 'es', nativeName: 'Espa\u00f1ol', englishName: 'Spanish' },
+  { value: 'pt', nativeName: 'Portugu\u00eas', englishName: 'Portuguese' },
+  { value: 'zh', nativeName: '\u7b80\u4f53\u4e2d\u6587', englishName: 'Chinese (Simplified)' },
+  { value: 'ar', nativeName: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629', englishName: 'Arabic' },
 ];
 
 const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
@@ -242,24 +244,45 @@ export function Header() {
             </SelectContent>
           </Select>
 
-          <Select
-            value={language}
-            onValueChange={(value) => setLanguage(value as Language)}
-          >
-            <SelectTrigger className="w-[90px] bg-slate-50/80 border-slate-200 rounded-xl h-9 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-9 px-3 rounded-xl bg-slate-50/80 border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-100 gap-2 notranslate"
+              >
+                <IconLanguage className="h-4 w-4 text-slate-500" />
+                <span>{languageOptions.find(l => l.value === language)?.nativeName || 'English'}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[280px] p-0 notranslate">
+              <div className="px-4 py-2.5 border-b border-slate-100">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Select Language</p>
+              </div>
               {languageOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => setLanguage(option.value)}
+                  className={`px-4 py-3 cursor-pointer flex items-center justify-between ${
+                    language === option.value ? 'bg-red-50 text-red-600' : ''
+                  }`}
+                >
+                  <span className={`text-sm font-medium ${language === option.value ? 'text-red-600' : 'text-slate-800'}`}>
+                    {option.nativeName}
+                  </span>
                   <div className="flex items-center gap-2">
-                    <span>{option.flag}</span>
-                    <span>{option.label}</span>
+                    <span className="text-xs text-slate-400">{option.englishName}</span>
+                    {language === option.value && (
+                      <IconCheck className="h-4 w-4 text-red-500" />
+                    )}
                   </div>
-                </SelectItem>
+                </DropdownMenuItem>
               ))}
-            </SelectContent>
-          </Select>
+              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2">
+                <span className="text-slate-400 text-xs">文A</span>
+                <span className="text-[11px] text-slate-400">Powered by Google Translate</span>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             variant="ghost"

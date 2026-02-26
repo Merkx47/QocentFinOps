@@ -77,7 +77,7 @@ A unified multi-cloud FinOps (Financial Operations) platform supporting AWS, Azu
 - **Waste Detection**: Idle/orphaned/oversized resource detection, category breakdown, actionable list
 - Analytics, resources, budgets, allocation, reports, settings, help pages
 - Multi-currency support (USD, GBP, EUR, JPY, NGN, CNY)
-- Multi-language selector (EN, FR, ES, ZH, AR, PT) in header and settings
+- Multi-language selector (EN, FR, ES, ZH, AR, PT) in header and settings — powered by Google Translate (client-side, no API key needed)
 - Dark/light mode (default: light), responsive design, Framer Motion animations
 - Collapsible sidebar with dynamic provider terminology
 - **Qocent FinOps Assistant**: Floating chat widget (bottom-right FAB) with knowledge-base responses, provider-aware, available on all dashboard pages
