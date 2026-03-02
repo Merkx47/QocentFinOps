@@ -165,10 +165,10 @@ export function Header() {
             value={selectedOrgUnitId}
             onValueChange={setSelectedOrgUnitId}
           >
-            <SelectTrigger className="w-auto min-w-[160px] max-w-[240px] bg-muted/50 [border-color:var(--button-outline)] shadow-xs rounded-xl h-9 text-sm">
-              <div className="flex items-center gap-2 whitespace-nowrap">
+            <SelectTrigger className="w-auto min-w-[160px] max-w-[240px] bg-muted/50 [border-color:var(--button-outline)] shadow-xs rounded-xl h-9 text-sm overflow-hidden">
+              <div className="flex items-center gap-2 min-w-0">
                 <IconBuildingSkyscraper className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <SelectValue placeholder={config.hierarchy.selectorLabel} />
+                <span className="truncate"><SelectValue placeholder={config.hierarchy.selectorLabel} /></span>
               </div>
             </SelectTrigger>
             <SelectContent>
