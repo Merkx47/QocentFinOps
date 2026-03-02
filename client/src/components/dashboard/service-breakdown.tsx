@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateServiceBreakdown } from '@/lib/mock-data';
 import { getServiceInfo } from '@/lib/provider-config';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   PieChart,
   Pie,
@@ -12,14 +12,19 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { 
-  IconTrendingUp, 
-  IconTrendingDown, 
+import {
+  IconTrendingUp,
+  IconTrendingDown,
   IconStack2,
   IconArrowRight,
+  IconSearch,
 } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useTableControls } from '@/hooks/use-table-controls';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 const CHART_COLORS = [
   '#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA',
@@ -27,10 +32,10 @@ const CHART_COLORS = [
 ];
 
 export function ServiceBreakdownChart() {
-  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
-  
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
+
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
-  const breakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const breakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider, dateRange), [selectedOrgUnitId, selectedProvider, dateRange]);
   const topServices = breakdown.slice(0, 8);
   
   const chartData = topServices.map((item, index) => ({
@@ -136,10 +141,22 @@ export function ServiceBreakdownChart() {
 }
 
 export function ServiceBreakdownTable() {
-  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
-  
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
+
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
-  const breakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const breakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider, dateRange), [selectedOrgUnitId, selectedProvider, dateRange]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredBreakdown = useMemo(() => {
+    if (!searchQuery) return breakdown;
+    return breakdown.filter(item =>
+      item.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (serviceInfo[item.service]?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [breakdown, searchQuery, serviceInfo]);
+
+  const { currentPage, setCurrentPage, totalPages, pageSize, paginatedData, totalItems } = useTableControls(filteredBreakdown);
 
   return (
     <motion.div
@@ -149,44 +166,52 @@ export function ServiceBreakdownTable() {
     >
       <Card className="bg-card/50 backdrop-blur-sm border-card-border">
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-          <CardTitle className="text-lg font-semibold">All Services</CardTitle>
-          <Button variant="ghost" size="sm" data-testid="button-view-all-services">
-            View All
-            <IconArrowRight className="h-4 w-4 ml-1" />
-          </Button>
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            All Services
+            <Badge variant="secondary" className="ml-1">{filteredBreakdown.length}</Badge>
+          </CardTitle>
+          <div className="relative">
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search services..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-[180px]"
+            />
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full" data-testid="table-service-breakdown">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
+            <Table data-testid="table-service-breakdown">
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="text-xs font-semibold uppercase">
                     Service
-                  </th>
-                  <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase text-right">
                     Cost
-                  </th>
-                  <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase text-right">
                     Share
-                  </th>
-                  <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase text-right">
                     Trend
-                  </th>
-                  <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase text-right">
                     Resources
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {breakdown.slice(0, 10).map((item, index) => (
-                  <tr 
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedData.map((item, index) => (
+                  <TableRow
                     key={item.service}
-                    className="border-b border-border/50 hover-elevate"
+                    className="hover-elevate"
                     data-testid={`table-row-${item.service}`}
                   >
-                    <td className="px-4 py-3">
+                    <TableCell>
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="h-3 w-3 rounded-sm flex-shrink-0"
                           style={{ backgroundColor: serviceInfo[item.service]?.color || CHART_COLORS[index % CHART_COLORS.length] }}
                         />
@@ -197,16 +222,16 @@ export function ServiceBreakdownTable() {
                           </p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell className="text-right">
                       <span className="text-sm font-mono font-medium">
                         {formatCurrency(item.cost, currency)}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-primary rounded-full"
                             style={{ width: `${item.percentage}%` }}
                           />
@@ -215,9 +240,9 @@ export function ServiceBreakdownTable() {
                           {item.percentage}%
                         </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Badge 
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge
                         variant="secondary"
                         className={cn(
                           "text-xs",
@@ -227,15 +252,22 @@ export function ServiceBreakdownTable() {
                         {item.trend > 0 ? <IconTrendingUp className="h-3 w-3 mr-1" /> : item.trend < 0 ? <IconTrendingDown className="h-3 w-3 mr-1" /> : null}
                         {item.trend > 0 ? '+' : ''}{item.trend}%
                       </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell className="text-right">
                       <span className="text-sm font-mono">{item.resourceCount}</span>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </motion.div>

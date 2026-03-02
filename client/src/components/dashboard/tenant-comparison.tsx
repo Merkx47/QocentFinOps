@@ -19,11 +19,11 @@ import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
 export function TenantComparison() {
-  const { currency, setSelectedOrgUnitId, selectedProvider } = useFinOpsStore();
-  
+  const { currency, setSelectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
+
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
   const providerConfig = useMemo(() => getProviderConfig(selectedProvider), [selectedProvider]);
-  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
+  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider, dateRange), [selectedProvider, dateRange]);
   const topTenants = summaries.sort((a, b) => b.totalSpend - a.totalSpend).slice(0, 5);
   const maxSpend = Math.max(...topTenants.map(t => t.totalSpend));
 
@@ -134,10 +134,10 @@ export function TenantComparison() {
 }
 
 export function TenantStatsCard() {
-  const { selectedProvider } = useFinOpsStore();
+  const { selectedProvider, dateRange } = useFinOpsStore();
   const providerConfig = useMemo(() => getProviderConfig(selectedProvider), [selectedProvider]);
   const orgUnits = useMemo(() => getOrgUnits(selectedProvider), [selectedProvider]);
-  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
+  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider, dateRange), [selectedProvider, dateRange]);
   
   const avgEfficiency = summaries.reduce((sum, s) => sum + s.efficiencyScore, 0) / summaries.length;
   const totalRecommendations = summaries.reduce((sum, s) => sum + s.recommendationCount, 0);

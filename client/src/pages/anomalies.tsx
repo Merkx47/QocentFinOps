@@ -32,6 +32,7 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const severityConfig = {
   critical: { bg: 'bg-red-500/10', text: 'text-red-500', border: 'border-red-500/20', dot: '#ef4444' },
@@ -124,33 +125,39 @@ export default function Anomalies() {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
           {[
-            { label: 'Total Anomalies', value: stats.total.toString(), icon: IconAlertTriangle, color: 'text-amber-500', bgColor: 'bg-amber-500/10' },
-            { label: 'Critical Alerts', value: stats.critical.toString(), icon: IconBolt, color: 'text-red-500', bgColor: 'bg-red-500/10' },
-            { label: 'Estimated Impact', value: formatCurrency(stats.impact, currency), icon: IconShieldCheck, color: 'text-primary', bgColor: 'bg-primary/10' },
-            { label: 'Resolution Rate', value: `${stats.resolutionRate}%`, icon: IconCircleCheck, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
+            { label: 'Total Anomalies', value: stats.total.toString(), icon: IconAlertTriangle, color: 'text-amber-500', bgColor: 'bg-amber-500/10', tooltip: 'Total number of spending anomalies detected by the AI engine in the current period.' },
+            { label: 'Critical Alerts', value: stats.critical.toString(), icon: IconBolt, color: 'text-red-500', bgColor: 'bg-red-500/10', tooltip: 'High-severity anomalies requiring immediate investigation, typically 50%+ above expected spend.' },
+            { label: 'Estimated Impact', value: formatCurrency(stats.impact, currency), icon: IconShieldCheck, color: 'text-primary', bgColor: 'bg-primary/10', tooltip: 'Total estimated financial impact of all detected anomalies if left unresolved.' },
+            { label: 'Resolution Rate', value: `${stats.resolutionRate}%`, icon: IconCircleCheck, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10', tooltip: 'Percentage of detected anomalies that have been investigated and resolved.' },
           ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                      <p className="text-2xl font-bold font-mono">{stat.value}</p>
-                    </div>
-                    <div className={cn("p-2.5 rounded-xl", stat.bgColor)}>
-                      <stat.icon className={cn("h-6 w-6", stat.color)} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <UITooltip key={stat.label} delayDuration={300}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                >
+                  <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                          <p className="text-2xl font-bold font-mono">{stat.value}</p>
+                        </div>
+                        <div className={cn("p-2.5 rounded-xl", stat.bgColor)}>
+                          <stat.icon className={cn("h-6 w-6", stat.color)} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                <p className="text-xs">{stat.tooltip}</p>
+              </TooltipContent>
+            </UITooltip>
           ))}
         </div>
 
@@ -176,7 +183,7 @@ export default function Anomalies() {
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                       </linearGradient>
-                      <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="colorAnomalyActual" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                       </linearGradient>
@@ -213,7 +220,7 @@ export default function Anomalies() {
                       stroke="#ef4444"
                       strokeWidth={2}
                       fillOpacity={1}
-                      fill="url(#colorActual)"
+                      fill="url(#colorAnomalyActual)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>

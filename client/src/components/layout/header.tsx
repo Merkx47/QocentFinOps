@@ -108,7 +108,7 @@ export function Header() {
     return orgUnits.find(u => u.id === selectedOrgUnitId);
   }, [selectedOrgUnitId, orgUnits]);
 
-  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider, dateRange), [selectedOrgUnitId, selectedProvider, dateRange]);
 
   const handleDateRangeChange = (preset: DateRangePreset) => {
     const today = new Date();
@@ -151,13 +151,13 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
+    <header className="h-16 border-b [border-bottom-color:var(--button-outline)] bg-background/80 backdrop-blur-xl sticky top-0 z-50">
       <div className="h-full px-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
             <ProviderLogo provider={selectedProvider} />
             <div className="hidden sm:block">
-              <span className="text-sm font-semibold text-slate-800">{config.shortName} FinOps</span>
+              <span className="text-sm font-semibold text-foreground">{config.shortName} FinOps</span>
             </div>
           </div>
 
@@ -165,9 +165,9 @@ export function Header() {
             value={selectedOrgUnitId}
             onValueChange={setSelectedOrgUnitId}
           >
-            <SelectTrigger className="w-[200px] bg-slate-50/80 border-slate-200 rounded-xl h-9 text-sm">
-              <div className="flex items-center gap-2">
-                <IconBuildingSkyscraper className="h-3.5 w-3.5 text-slate-400" />
+            <SelectTrigger className="w-auto min-w-[160px] max-w-[240px] bg-muted/50 [border-color:var(--button-outline)] shadow-xs rounded-xl h-9 text-sm">
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <IconBuildingSkyscraper className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                 <SelectValue placeholder={config.hierarchy.selectorLabel} />
               </div>
             </SelectTrigger>
@@ -193,9 +193,9 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span className="text-[11px] text-slate-400 font-medium">MTD</span>
-            <span className="text-sm font-mono font-semibold text-slate-900">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 border [border-color:var(--button-outline)] shadow-xs">
+            <span className="text-[11px] text-muted-foreground font-medium">MTD</span>
+            <span className="text-sm font-mono font-semibold text-foreground">
               {formatCompactCurrency(kpis.totalSpend, currency)}
             </span>
             <Badge
@@ -210,9 +210,9 @@ export function Header() {
             value={dateRange.preset}
             onValueChange={(value) => handleDateRangeChange(value as DateRangePreset)}
           >
-            <SelectTrigger className="w-[140px] bg-slate-50/80 border-slate-200 rounded-xl h-9 text-sm">
-              <div className="flex items-center gap-2">
-                <IconCalendarEvent className="h-3.5 w-3.5 text-slate-400" />
+            <SelectTrigger className="w-auto min-w-[130px] max-w-[200px] bg-muted/50 [border-color:var(--button-outline)] shadow-xs rounded-xl h-9 text-sm">
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <IconCalendarEvent className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                 <SelectValue />
               </div>
             </SelectTrigger>
@@ -229,7 +229,7 @@ export function Header() {
             value={currency}
             onValueChange={(value) => setCurrency(value as Currency)}
           >
-            <SelectTrigger className="w-[90px] bg-slate-50/80 border-slate-200 rounded-xl h-9 text-sm">
+            <SelectTrigger className="w-[110px] bg-muted/50 [border-color:var(--button-outline)] shadow-xs rounded-xl h-9 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -248,38 +248,38 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="h-9 px-3 rounded-xl bg-slate-50/80 border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-100 gap-2 notranslate"
+                className="h-9 px-3 rounded-xl bg-muted/50 border-border text-sm font-medium text-foreground hover:bg-muted gap-2 notranslate"
               >
-                <IconLanguage className="h-4 w-4 text-slate-500" />
+                <IconLanguage className="h-4 w-4 text-muted-foreground" />
                 <span>{languageOptions.find(l => l.value === language)?.nativeName || 'English'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[280px] p-0 notranslate">
-              <div className="px-4 py-2.5 border-b border-slate-100">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Select Language</p>
+              <div className="px-4 py-2.5 border-b border-border">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Select Language</p>
               </div>
               {languageOptions.map((option) => (
                 <DropdownMenuItem
                   key={option.value}
                   onClick={() => setLanguage(option.value)}
                   className={`px-4 py-3 cursor-pointer flex items-center justify-between ${
-                    language === option.value ? 'bg-red-50 text-red-600' : ''
+                    language === option.value ? 'bg-primary/10 text-primary' : ''
                   }`}
                 >
-                  <span className={`text-sm font-medium ${language === option.value ? 'text-red-600' : 'text-slate-800'}`}>
+                  <span className={`text-sm font-medium ${language === option.value ? 'text-primary' : 'text-foreground'}`}>
                     {option.nativeName}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">{option.englishName}</span>
+                    <span className="text-xs text-muted-foreground">{option.englishName}</span>
                     {language === option.value && (
-                      <IconCheck className="h-4 w-4 text-red-500" />
+                      <IconCheck className="h-4 w-4 text-primary" />
                     )}
                   </div>
                 </DropdownMenuItem>
               ))}
-              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2">
-                <span className="text-slate-400 text-xs">文A</span>
-                <span className="text-[11px] text-slate-400">Powered by Google Translate</span>
+              <div className="px-4 py-2.5 border-t border-border flex items-center gap-2">
+                <span className="text-muted-foreground text-xs">文A</span>
+                <span className="text-[11px] text-muted-foreground">Powered by Google Translate</span>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -287,7 +287,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
             onClick={() => setIsDark(!isDark)}
           >
             {isDark ? (
@@ -297,26 +297,65 @@ export function Header() {
             )}
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600"
-          >
-            <IconBell className="h-4 w-4" />
-            <span
-              className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
-              style={{ background: config.colors.primary }}
-            >
-              3
-            </span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+              >
+                <IconBell className="h-4 w-4" />
+                <span
+                  className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                  style={{ background: config.colors.primary }}
+                >
+                  3
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 p-0">
+              <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+                <p className="text-sm font-semibold">Notifications</p>
+                <Badge variant="secondary" className="text-[10px] h-5 px-1.5">3 new</Badge>
+              </div>
+              <div className="max-h-[300px] overflow-y-auto">
+                <DropdownMenuItem className="px-4 py-3 cursor-pointer flex-col items-start gap-1">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="h-2 w-2 rounded-full bg-destructive flex-shrink-0" />
+                    <span className="text-sm font-medium">Budget Alert</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">2m ago</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-4">Production spending reached 92% of monthly budget</p>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="px-4 py-3 cursor-pointer flex-col items-start gap-1">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 flex-shrink-0" />
+                    <span className="text-sm font-medium">Cost Anomaly Detected</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">1h ago</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-4">Unusual spike in compute costs (+34% vs baseline)</p>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="px-4 py-3 cursor-pointer flex-col items-start gap-1">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                    <span className="text-sm font-medium">New Recommendation</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">3h ago</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-4">3 new rightsizing opportunities found — save up to 18%</p>
+                </DropdownMenuItem>
+              </div>
+              <div className="px-4 py-2.5 border-t border-border">
+                <button className="text-xs text-primary font-medium hover:underline" onClick={() => navigate('/notifications')}>View all notifications</button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600"
+                className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
               >
                 <IconUserCircle className="h-4 w-4" />
               </Button>

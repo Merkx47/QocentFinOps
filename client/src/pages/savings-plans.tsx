@@ -1,16 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TablePagination } from '@/components/ui/table-pagination';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateSavingsPlans } from '@/lib/mock-data';
 import { getProviderConfig } from '@/lib/provider-config';
-import { useMemo } from 'react';
+import { useTableControls } from '@/hooks/use-table-controls';
+import { useMemo, useState } from 'react';
 import {
   IconShieldCheck,
   IconClock,
   IconCurrencyDollar,
   IconCalendarEvent,
   IconAlertTriangle,
+  IconSearch,
 } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -47,6 +53,21 @@ export default function SavingsPlans() {
   const { summary, commitments } = data;
   const expiringCommitments = commitments.filter(c => c.status === 'expiring');
   const activeCommitments = commitments.filter(c => c.status !== 'expired');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const filteredCommitments = useMemo(() => {
+    return commitments.filter(c => {
+      const matchesSearch = searchQuery === '' ||
+        c.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.service.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [commitments, searchQuery, statusFilter]);
+
+  const { currentPage, setCurrentPage, totalPages, pageSize, paginatedData, totalItems } = useTableControls(filteredCommitments);
 
   const utilizationData = activeCommitments.map(c => ({
     name: `${c.type.split(' ')[0]} - ${c.service}`,
@@ -87,8 +108,8 @@ export default function SavingsPlans() {
       label: 'Expiring Soon',
       value: summary.expiringIn30Days,
       icon: IconAlertTriangle,
-      color: summary.expiringIn30Days > 0 ? 'text-amber-500' : 'text-slate-400',
-      bg: summary.expiringIn30Days > 0 ? 'bg-amber-500/10' : 'bg-slate-100',
+      color: summary.expiringIn30Days > 0 ? 'text-amber-500' : 'text-muted-foreground',
+      bg: summary.expiringIn30Days > 0 ? 'bg-amber-500/10' : 'bg-muted',
     },
   ];
 
@@ -235,7 +256,7 @@ export default function SavingsPlans() {
                     </p>
                     <div className="mt-3 space-y-2">
                       {expiringCommitments.map(c => (
-                        <div key={c.id} className="flex items-center justify-between text-sm bg-white/60 rounded-lg px-3 py-2">
+                        <div key={c.id} className="flex items-center justify-between text-sm bg-card/60 rounded-lg px-3 py-2">
                           <span className="font-medium text-amber-900">{c.type} — {c.service}</span>
                           <span className="text-amber-700">Expires {c.expirationDate}</span>
                         </div>
@@ -256,44 +277,66 @@ export default function SavingsPlans() {
         >
           <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <IconCalendarEvent className="h-5 w-5 text-primary" />
-                Commitments
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <IconCalendarEvent className="h-5 w-5 text-primary" />
+                  Commitments
+                  <Badge variant="secondary" className="ml-2">{filteredCommitments.length}</Badge>
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search commitments..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 w-[200px]"
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="expiring">Expiring</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-2 font-medium text-muted-foreground">Type</th>
-                      <th className="text-left py-3 px-2 font-medium text-muted-foreground">Service</th>
-                      <th className="text-left py-3 px-2 font-medium text-muted-foreground">Term</th>
-                      <th className="text-right py-3 px-2 font-medium text-muted-foreground">Monthly Cost</th>
-                      <th className="text-right py-3 px-2 font-medium text-muted-foreground">On-Demand</th>
-                      <th className="text-center py-3 px-2 font-medium text-muted-foreground">Utilization</th>
-                      <th className="text-center py-3 px-2 font-medium text-muted-foreground">Coverage</th>
-                      <th className="text-left py-3 px-2 font-medium text-muted-foreground">Expiration</th>
-                      <th className="text-center py-3 px-2 font-medium text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {commitments.map((c, index) => (
-                      <motion.tr
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="text-xs font-semibold uppercase text-left">Type</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-left">Service</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-left">Term</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-right">Monthly Cost</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-right">On-Demand</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-center">Utilization</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-center">Coverage</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-left">Expiration</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.map((c, index) => (
+                      <TableRow
                         key={c.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: 0.05 * index }}
-                        className="border-b border-border/50 hover:bg-muted/30"
+                        className="hover:bg-muted/30"
                       >
-                        <td className="py-3 px-2 font-medium">{c.type}</td>
-                        <td className="py-3 px-2">{c.service}</td>
-                        <td className="py-3 px-2">
+                        <TableCell className="font-medium">{c.type}</TableCell>
+                        <TableCell>{c.service}</TableCell>
+                        <TableCell>
                           <Badge variant="outline" className="text-xs">{c.term}</Badge>
-                        </td>
-                        <td className="py-3 px-2 text-right font-mono">{formatCurrency(c.monthlyCommitment, currency)}</td>
-                        <td className="py-3 px-2 text-right font-mono text-muted-foreground">{formatCurrency(c.monthlyOnDemand, currency)}</td>
-                        <td className="py-3 px-2">
+                        </TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(c.monthlyCommitment, currency)}</TableCell>
+                        <TableCell className="text-right font-mono text-muted-foreground">{formatCurrency(c.monthlyOnDemand, currency)}</TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2 justify-center">
                             <Progress
                               value={c.utilization}
@@ -306,15 +349,15 @@ export default function SavingsPlans() {
                             />
                             <span className="font-mono text-xs w-10 text-right">{c.utilization}%</span>
                           </div>
-                        </td>
-                        <td className="py-3 px-2">
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2 justify-center">
                             <Progress value={c.coverage} className="h-2 w-16" />
                             <span className="font-mono text-xs w-10 text-right">{c.coverage}%</span>
                           </div>
-                        </td>
-                        <td className="py-3 px-2 font-mono text-xs">{c.expirationDate}</td>
-                        <td className="py-3 px-2 text-center">
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{c.expirationDate}</TableCell>
+                        <TableCell className="text-center">
                           <Badge
                             variant={c.status === 'expired' ? 'destructive' : 'secondary'}
                             className={cn(
@@ -325,12 +368,19 @@ export default function SavingsPlans() {
                           >
                             {c.status}
                           </Badge>
-                        </td>
-                      </motion.tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
             </CardContent>
           </Card>
         </motion.div>

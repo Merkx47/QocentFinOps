@@ -6,31 +6,56 @@ import type {
   ServiceBreakdown,
   RegionBreakdown,
   OrgUnitSummary,
+  DateRange,
 } from '@shared/schema';
 import type { CloudProvider, OrgUnit } from './provider-config';
 import { getProviderConfig, getServiceInfo, getRegionNames } from './provider-config';
+
+// Deterministic seeded PRNG (mulberry32) — ensures same inputs always produce same data
+function createSeededRandom(seed: string): () => number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  }
+  return () => {
+    h |= 0; h = h + 0x6D2B79F5 | 0;
+    let t = Math.imul(h ^ h >>> 15, 1 | h);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function getDaysFromDateRange(dateRange?: DateRange): number {
+  if (!dateRange || !dateRange.startDate || !dateRange.endDate) return 30;
+  const start = new Date(dateRange.startDate);
+  const end = new Date(dateRange.endDate);
+  const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(1, days);
+}
 
 export function getOrgUnits(provider: CloudProvider): OrgUnit[] {
   return getProviderConfig(provider).orgUnits;
 }
 
-export function generateCostTrend(tenantId: string | 'all', provider: CloudProvider = 'huawei'): CostTrendPoint[] {
+export function generateCostTrend(tenantId: string | 'all', provider: CloudProvider = 'huawei', dateRange?: DateRange): CostTrendPoint[] {
+  const days = getDaysFromDateRange(dateRange);
+  const rand = createSeededRandom(`costTrend-${tenantId}-${provider}-${days}`);
   const data: CostTrendPoint[] = [];
-  const today = new Date();
+  const today = dateRange?.endDate ? new Date(dateRange.endDate) : new Date();
 
   const providerMultiplier = provider === 'aws' ? 1.2 : provider === 'azure' ? 1.1 : provider === 'gcp' ? 1.0 : 0.9;
-  let baseAmount = (tenantId === 'all' ? 45000 : 8000) * providerMultiplier;
+  const baseAmount = (tenantId === 'all' ? 45000 : 8000) * providerMultiplier;
   const variance = (tenantId === 'all' ? 8000 : 1500) * providerMultiplier;
 
-  for (let i = 29; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
 
     const dayOfWeek = date.getDay();
     const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.85 : 1;
 
-    const randomVariance = (Math.random() - 0.5) * variance;
-    const trendGrowth = (30 - i) * 50;
+    const randomVariance = (rand() - 0.5) * variance;
+    const trendGrowth = (days - i) * 50;
 
     const amount = Math.max(0, (baseAmount + randomVariance + trendGrowth) * weekendFactor);
 
@@ -46,7 +71,7 @@ export function generateCostTrend(tenantId: string | 'all', provider: CloudProvi
     date.setDate(date.getDate() + i);
 
     const forecastGrowth = i * 80;
-    const forecast = lastAmount + forecastGrowth + (Math.random() - 0.5) * 500;
+    const forecast = lastAmount + forecastGrowth + (rand() - 0.5) * 500;
 
     data.push({
       date: date.toISOString().split('T')[0],
@@ -58,7 +83,10 @@ export function generateCostTrend(tenantId: string | 'all', provider: CloudProvi
   return data;
 }
 
-export function generateServiceBreakdown(tenantId: string | 'all', provider: CloudProvider = 'huawei'): ServiceBreakdown[] {
+export function generateServiceBreakdown(tenantId: string | 'all', provider: CloudProvider = 'huawei', dateRange?: DateRange): ServiceBreakdown[] {
+  const days = getDaysFromDateRange(dateRange);
+  const dayScale = days / 30;
+  const rand = createSeededRandom(`serviceBreakdown-${tenantId}-${provider}-${days}`);
   const config = getProviderConfig(provider);
   const services = config.services;
 
@@ -68,10 +96,10 @@ export function generateServiceBreakdown(tenantId: string | 'all', provider: Clo
 
   const breakdown = services.map((service, i) => {
     const baseCost = baseCosts[i % baseCosts.length];
-    const variance = (Math.random() - 0.3) * baseCost * 0.4;
-    const cost = Math.max(100, (baseCost + variance) * multiplier);
-    const trend = (Math.random() - 0.4) * 25;
-    const resourceCount = Math.floor(cost / 500) + Math.floor(Math.random() * 10);
+    const variance = (rand() - 0.3) * baseCost * 0.4;
+    const cost = Math.max(100, (baseCost + variance) * multiplier * dayScale);
+    const trend = (rand() - 0.4) * 25;
+    const resourceCount = Math.floor(cost / 500) + Math.floor(rand() * 10);
 
     return {
       service,
@@ -90,7 +118,10 @@ export function generateServiceBreakdown(tenantId: string | 'all', provider: Clo
   return breakdown.sort((a, b) => b.cost - a.cost);
 }
 
-export function generateRegionBreakdown(tenantId: string | 'all', provider: CloudProvider = 'huawei'): RegionBreakdown[] {
+export function generateRegionBreakdown(tenantId: string | 'all', provider: CloudProvider = 'huawei', dateRange?: DateRange): RegionBreakdown[] {
+  const days = getDaysFromDateRange(dateRange);
+  const dayScale = days / 30;
+  const rand = createSeededRandom(`regionBreakdown-${tenantId}-${provider}-${days}`);
   const config = getProviderConfig(provider);
   const regions = config.regions;
 
@@ -100,9 +131,9 @@ export function generateRegionBreakdown(tenantId: string | 'all', provider: Clou
 
   const breakdown = regions.map((region, i) => {
     const baseCost = baseCosts[i % baseCosts.length];
-    const variance = (Math.random() - 0.3) * baseCost * 0.3;
-    const cost = Math.max(500, (baseCost + variance) * multiplier);
-    const resourceCount = Math.floor(cost / 800) + Math.floor(Math.random() * 15);
+    const variance = (rand() - 0.3) * baseCost * 0.3;
+    const cost = Math.max(500, (baseCost + variance) * multiplier * dayScale);
+    const resourceCount = Math.floor(cost / 800) + Math.floor(rand() * 15);
 
     return {
       region,
@@ -120,13 +151,16 @@ export function generateRegionBreakdown(tenantId: string | 'all', provider: Clou
   return breakdown.sort((a, b) => b.cost - a.cost);
 }
 
-export function generateKPIs(tenantId: string | 'all', provider: CloudProvider = 'huawei'): DashboardKPIs {
+export function generateKPIs(tenantId: string | 'all', provider: CloudProvider = 'huawei', dateRange?: DateRange): DashboardKPIs {
+  const days = getDaysFromDateRange(dateRange);
+  const dayScale = days / 30;
+  const rand = createSeededRandom(`kpis-${tenantId}-${provider}-${days}`);
   const isAll = tenantId === 'all';
   const multiplier = isAll ? 1 : 0.15;
   const orgUnits = getOrgUnits(provider);
 
-  const totalSpend = (185000 + Math.random() * 30000) * multiplier;
-  const previousSpend = totalSpend * (0.88 + Math.random() * 0.08);
+  const totalSpend = (185000 + rand() * 30000) * multiplier * dayScale;
+  const previousSpend = totalSpend * (0.88 + rand() * 0.08);
   const spendGrowthRate = ((totalSpend - previousSpend) / previousSpend) * 100;
 
   const totalBudget = isAll ? 2300000 : orgUnits.find(u => u.id === tenantId)?.budget || 200000;
@@ -138,10 +172,10 @@ export function generateKPIs(tenantId: string | 'all', provider: CloudProvider =
     spendGrowthRate: Math.round(spendGrowthRate * 10) / 10,
     budgetUsed: Math.round(budgetUsed * 10) / 10,
     totalBudget,
-    activeResources: Math.floor(isAll ? 847 : 120 + Math.random() * 50),
-    optimizationOpportunities: Math.floor(isAll ? 156 : 18 + Math.random() * 12),
-    potentialSavings: Math.round((totalSpend * (0.12 + Math.random() * 0.08)) * 100) / 100,
-    averageEfficiency: Math.round((75 + Math.random() * 18) * 10) / 10,
+    activeResources: Math.floor(isAll ? 847 : 120 + rand() * 50),
+    optimizationOpportunities: Math.floor(isAll ? 156 : 18 + rand() * 12),
+    potentialSavings: Math.round((totalSpend * (0.12 + rand() * 0.08)) * 100) / 100,
+    averageEfficiency: Math.round((75 + rand() * 18) * 10) / 10,
     costPerResource: Math.round((totalSpend / (isAll ? 847 : 150)) * 100) / 100,
   };
 }
@@ -150,7 +184,6 @@ function getProviderRecommendations(tenantId: string | 'all', provider: CloudPro
   const orgUnits = getOrgUnits(provider);
   const getTid = (index: number) => tenantId === 'all' ? orgUnits[index % orgUnits.length].id : tenantId;
   const config = getProviderConfig(provider);
-  const services = config.services;
 
   if (provider === 'aws') {
     return [
@@ -228,7 +261,8 @@ function getResourceNamePrefix(provider: CloudProvider, service: string): string
     const prefixes: Record<string, string> = { 'Compute Engine': 'gce-', 'Cloud Storage': 'gcs-', 'Cloud SQL': 'csql-', 'Cloud Functions': 'gcf-', 'GKE': 'gke-', 'BigQuery': 'bq-', 'Memorystore': 'mem-', 'Persistent Disk': 'pd-' };
     return prefixes[service] || 'res-';
   }
-  return `${service.toLowerCase()}-`;
+  const huaweiPrefixes: Record<string, string> = { 'ECS': 'ecs-', 'RDS': 'rds-', 'OBS': 'obs-', 'EVS': 'evs-', 'ELB': 'elb-', 'VPC': 'vpc-', 'CDN': 'cdn-', 'DCS': 'dcs-' };
+  return huaweiPrefixes[service] || `${service.toLowerCase()}-`;
 }
 
 function getResourceType(provider: CloudProvider, service: string): string {
@@ -242,11 +276,12 @@ function getResourceType(provider: CloudProvider, service: string): string {
     const types: Record<string, string> = { 'Compute Engine': 'n1-standard-4', 'Cloud SQL': 'db-custom-4-15360', 'GKE': 'e2-standard-4', 'Memorystore': 'M1' };
     return types[service] || 'standard';
   }
-  const huaweiTypes: Record<string, string> = { 'ECS': 's6.xlarge.4', 'RDS': 'mysql.x1.large.4' };
+  const huaweiTypes: Record<string, string> = { 'ECS': 's6.xlarge.4', 'RDS': 'mysql.x1.large.4', 'OBS': 'Standard', 'EVS': 'SAS', 'DCS': 'master-standby' };
   return huaweiTypes[service] || 'standard';
 }
 
 export function generateResources(tenantId: string | 'all', provider: CloudProvider = 'huawei'): Resource[] {
+  const rand = createSeededRandom(`resources-${tenantId}-${provider}`);
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 8);
   const regions = config.regions.slice(0, 4);
@@ -256,15 +291,15 @@ export function generateResources(tenantId: string | 'all', provider: CloudProvi
   const resourceCount = tenantId === 'all' ? 50 : 15;
 
   for (let i = 0; i < resourceCount; i++) {
-    const service = services[Math.floor(Math.random() * services.length)];
-    const region = regions[Math.floor(Math.random() * regions.length)];
-    const tId = tenantId === 'all' ? orgUnits[Math.floor(Math.random() * orgUnits.length)].id : tenantId;
+    const service = services[Math.floor(rand() * services.length)];
+    const region = regions[Math.floor(rand() * regions.length)];
+    const tId = tenantId === 'all' ? orgUnits[Math.floor(rand() * orgUnits.length)].id : tenantId;
     const prefix = getResourceNamePrefix(provider, service);
-    const envSuffix = ['prod', 'staging', 'dev'][Math.floor(Math.random() * 3)];
+    const envSuffix = ['prod', 'staging', 'dev'][Math.floor(rand() * 3)];
 
     let name: string;
     if (provider === 'aws' && (service === 'EC2' || service === 'EBS')) {
-      name = `${prefix}${Math.random().toString(16).substr(2, 8)}`;
+      name = `${prefix}${Math.floor(rand() * 0xFFFFFFFF).toString(16).padStart(8, '0')}`;
     } else {
       name = `${prefix}${envSuffix}-${String(i + 1).padStart(2, '0')}`;
     }
@@ -276,13 +311,13 @@ export function generateResources(tenantId: string | 'all', provider: CloudProvi
       service,
       region,
       type: getResourceType(provider, service),
-      status: Math.random() > 0.1 ? 'running' : 'stopped',
-      cpuUtilization: Math.round(Math.random() * 100),
-      memoryUtilization: Math.round(Math.random() * 100),
-      networkUtilization: Math.round(Math.random() * 100),
-      diskUtilization: Math.round(Math.random() * 100),
-      monthlyCost: Math.round((50 + Math.random() * 500) * 100) / 100,
-      createdAt: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString(),
+      status: rand() > 0.1 ? 'running' : 'stopped',
+      cpuUtilization: Math.round(rand() * 100),
+      memoryUtilization: Math.round(rand() * 100),
+      networkUtilization: Math.round(rand() * 100),
+      diskUtilization: Math.round(rand() * 100),
+      monthlyCost: Math.round((50 + rand() * 500) * 100) / 100,
+      createdAt: new Date(Date.now() - rand() * 180 * 24 * 60 * 60 * 1000).toISOString(),
     });
   }
 
@@ -306,6 +341,7 @@ export interface CostAnomaly {
 }
 
 export function generateAnomalies(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): CostAnomaly[] {
+  const rand = createSeededRandom(`anomalies-${orgUnitId}-${provider}`);
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 8);
   const regions = config.regions.slice(0, 5);
@@ -333,10 +369,10 @@ export function generateAnomalies(orgUnitId: string | 'all', provider: CloudProv
     const service = services[i % services.length];
     const region = regions[i % regions.length];
     const oId = orgUnitId === 'all' ? orgUnits[i % orgUnits.length].id : orgUnitId;
-    const daysAgo = Math.floor(Math.random() * 14);
+    const daysAgo = Math.floor(rand() * 14);
     const date = new Date(today);
     date.setDate(date.getDate() - daysAgo);
-    const expectedCost = 500 + Math.random() * 3000;
+    const expectedCost = 500 + rand() * 3000;
     const actualCost = expectedCost * (1 + template.deviation / 100);
 
     return {
@@ -383,6 +419,7 @@ export interface SavingsPlanData {
 }
 
 export function generateSavingsPlans(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): SavingsPlanData {
+  const rand = createSeededRandom(`savingsPlans-${orgUnitId}-${provider}`);
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 6);
   const today = new Date();
@@ -398,12 +435,12 @@ export function generateSavingsPlans(orgUnitId: string | 'all', provider: CloudP
 
   const commitments: Commitment[] = types.map((type, i) => {
     const term = i % 3 === 0 ? '3-year' : '1-year' as const;
-    const monthlyCommitment = 800 + Math.random() * 4000;
-    const monthlyOnDemand = monthlyCommitment * (1.3 + Math.random() * 0.5);
-    const utilization = 60 + Math.random() * 38;
-    const coverage = 50 + Math.random() * 45;
+    const monthlyCommitment = 800 + rand() * 4000;
+    const monthlyOnDemand = monthlyCommitment * (1.3 + rand() * 0.5);
+    const utilization = 60 + rand() * 38;
+    const coverage = 50 + rand() * 45;
 
-    const expirationDays = i < 2 ? Math.floor(Math.random() * 25) + 5 : Math.floor(Math.random() * 300) + 30;
+    const expirationDays = i < 2 ? Math.floor(rand() * 25) + 5 : Math.floor(rand() * 300) + 30;
     const expDate = new Date(today);
     expDate.setDate(expDate.getDate() + expirationDays);
 
@@ -472,6 +509,7 @@ export interface ForecastData {
 }
 
 export function generateForecast(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): ForecastData {
+  const rand = createSeededRandom(`forecast-${orgUnitId}-${provider}`);
   const multiplier = orgUnitId === 'all' ? 1 : 0.15;
   const providerMult = provider === 'aws' ? 1.2 : provider === 'azure' ? 1.1 : provider === 'gcp' ? 1.0 : 0.9;
   const baseAmount = 45000 * multiplier * providerMult;
@@ -483,7 +521,7 @@ export function generateForecast(orgUnitId: string | 'all', provider: CloudProvi
     date.setDate(date.getDate() - i);
     const dayOfWeek = date.getDay();
     const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.85 : 1;
-    const amount = baseAmount * weekendFactor + (Math.random() - 0.5) * baseAmount * 0.2 + (30 - i) * 60 * multiplier;
+    const amount = baseAmount * weekendFactor + (rand() - 0.5) * baseAmount * 0.2 + (30 - i) * 60 * multiplier;
 
     dataPoints.push({
       date: date.toISOString().split('T')[0],
@@ -497,7 +535,7 @@ export function generateForecast(orgUnitId: string | 'all', provider: CloudProvi
     const date = new Date(today);
     date.setDate(date.getDate() + i);
     const growth = i * 40 * multiplier;
-    const base = lastAmount + growth + (Math.random() - 0.5) * 2000 * multiplier;
+    const base = lastAmount + growth + (rand() - 0.5) * 2000 * multiplier;
     const spread = 1000 + i * 80 * multiplier;
 
     dataPoints.push({
@@ -516,8 +554,8 @@ export function generateForecast(orgUnitId: string | 'all', provider: CloudProvi
     dataPoints,
     projectedMonthEnd: Math.round(monthlyBase * 1.05 * 100) / 100,
     projectedQuarterEnd: Math.round(quarterlyBase * 1.12 * 100) / 100,
-    budgetBreachDate: Math.random() > 0.4 ? (() => { const d = new Date(today); d.setDate(d.getDate() + 45 + Math.floor(Math.random() * 30)); return d.toISOString().split('T')[0]; })() : null,
-    confidenceLevel: Math.round((82 + Math.random() * 12) * 10) / 10,
+    budgetBreachDate: rand() > 0.4 ? (() => { const d = new Date(today); d.setDate(d.getDate() + 45 + Math.floor(rand() * 30)); return d.toISOString().split('T')[0]; })() : null,
+    confidenceLevel: Math.round((82 + rand() * 12) * 10) / 10,
     scenarios: [
       { name: 'optimistic', label: 'Optimistic', monthlyProjection: Math.round(monthlyBase * 0.9), quarterlyProjection: Math.round(quarterlyBase * 0.88), color: '#10b981' },
       { name: 'baseline', label: 'Baseline', monthlyProjection: Math.round(monthlyBase * 1.05), quarterlyProjection: Math.round(quarterlyBase * 1.12), color: '#3b82f6' },
@@ -564,6 +602,7 @@ export interface TagComplianceData {
 }
 
 export function generateTagCompliance(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): TagComplianceData {
+  const rand = createSeededRandom(`tagCompliance-${orgUnitId}-${provider}`);
   const config = getProviderConfig(provider);
   const orgUnits = getOrgUnits(provider);
   const services = config.services.slice(0, 8);
@@ -577,39 +616,42 @@ export function generateTagCompliance(orgUnitId: string | 'all', provider: Cloud
 
   const tags = tagsByProvider[provider];
   const totalResources = orgUnitId === 'all' ? 847 : 120;
-  const complianceBase = 65 + Math.random() * 20;
+  const complianceBase = 65 + rand() * 20;
 
   const requiredTags: TagRule[] = tags.map(tag => {
-    const pct = complianceBase + (Math.random() - 0.5) * 30;
+    const pct = complianceBase + (rand() - 0.5) * 30;
     const compliant = Math.round(totalResources * pct / 100);
     return {
       tag,
       compliant,
       nonCompliant: totalResources - compliant,
-      percentage: Math.round(pct * 10) / 10,
+      percentage: Math.round(Math.min(100, pct) * 10) / 10,
     };
   });
 
   const taggedResources = Math.round(totalResources * complianceBase / 100);
-  const untaggedCost = (totalResources - taggedResources) * (80 + Math.random() * 200);
+  const untaggedCost = (totalResources - taggedResources) * (80 + rand() * 200);
 
-  const byOrgUnit: OrgUnitCompliance[] = orgUnits.map(ou => ({
-    orgUnitId: ou.id,
-    orgUnitName: ou.name,
-    compliance: Math.round((55 + Math.random() * 40) * 10) / 10,
-    untaggedCost: Math.round((2000 + Math.random() * 15000) * 100) / 100,
-  }));
+  const byOrgUnit: OrgUnitCompliance[] = orgUnits.map((ou, i) => {
+    const ouRand = createSeededRandom(`tagOu-${ou.id}-${provider}`);
+    return {
+      orgUnitId: ou.id,
+      orgUnitName: ou.name,
+      compliance: Math.round((55 + ouRand() * 40) * 10) / 10,
+      untaggedCost: Math.round((2000 + ouRand() * 15000) * 100) / 100,
+    };
+  });
 
   const topViolations: TagViolation[] = Array.from({ length: 10 }, (_, i) => {
     const service = services[i % services.length];
-    const missingCount = 1 + Math.floor(Math.random() * 3);
+    const missingCount = 1 + Math.floor(rand() * 3);
     const missingTags = tags.slice(0, missingCount);
     return {
       resourceId: `res-untagged-${i + 1}`,
       resourceName: `${service.toLowerCase()}-untagged-${String(i + 1).padStart(2, '0')}`,
       service,
       missingTags,
-      monthlyCost: Math.round((50 + Math.random() * 800) * 100) / 100,
+      monthlyCost: Math.round((50 + rand() * 800) * 100) / 100,
     };
   });
 
@@ -655,34 +697,36 @@ export interface UnitEconomicsData {
   topServices: ServiceUnitCost[];
 }
 
-export function generateUnitEconomics(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): UnitEconomicsData {
+export function generateUnitEconomics(orgUnitId: string | 'all', provider: CloudProvider = 'huawei', dateRange?: DateRange): UnitEconomicsData {
+  const days = getDaysFromDateRange(dateRange);
+  const rand = createSeededRandom(`unitEconomics-${orgUnitId}-${provider}-${days}`);
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 8);
   const multiplier = orgUnitId === 'all' ? 1 : 0.3;
 
   const metrics: UnitMetric[] = [
-    { name: 'Cost per API Call', value: Math.round((0.0012 + Math.random() * 0.0008) * 10000) / 10000, unit: 'per call', trend: -(2 + Math.random() * 8), description: 'Average cost per API request across all endpoints' },
-    { name: 'Cost per Active User', value: Math.round((2.4 + Math.random() * 1.8) * 100) / 100, unit: 'per user/mo', trend: -(1 + Math.random() * 5), description: 'Monthly cloud cost per active platform user' },
-    { name: 'Cost per GB Stored', value: Math.round((0.023 + Math.random() * 0.015) * 1000) / 1000, unit: 'per GB/mo', trend: Math.random() > 0.5 ? -(Math.random() * 3) : Math.random() * 2, description: 'Average storage cost across all tiers and services' },
-    { name: 'Cost per Transaction', value: Math.round((0.045 + Math.random() * 0.03) * 1000) / 1000, unit: 'per txn', trend: -(3 + Math.random() * 6), description: 'Average infrastructure cost per business transaction' },
+    { name: 'Cost per API Call', value: Math.round((0.0012 + rand() * 0.0008) * 10000) / 10000, unit: 'per call', trend: -(2 + rand() * 8), description: 'Average cost per API request across all endpoints' },
+    { name: 'Cost per Active User', value: Math.round((2.4 + rand() * 1.8) * 100) / 100, unit: 'per user/mo', trend: -(1 + rand() * 5), description: 'Monthly cloud cost per active platform user' },
+    { name: 'Cost per GB Stored', value: Math.round((0.023 + rand() * 0.015) * 1000) / 1000, unit: 'per GB/mo', trend: rand() > 0.5 ? -(rand() * 3) : rand() * 2, description: 'Average storage cost across all tiers and services' },
+    { name: 'Cost per Transaction', value: Math.round((0.045 + rand() * 0.03) * 1000) / 1000, unit: 'per txn', trend: -(3 + rand() * 6), description: 'Average infrastructure cost per business transaction' },
   ];
 
-  const today = new Date();
+  const today = dateRange?.endDate ? new Date(dateRange.endDate) : new Date();
   const trend: UnitEconomicsTrend[] = [];
-  for (let i = 29; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    const baseCPU = 0.05 - (29 - i) * 0.0003;
+    const baseCPU = 0.05 - (days - 1 - i) * (0.009 / Math.max(1, days - 1));
     trend.push({
       date: date.toISOString().split('T')[0],
-      costPerUnit: Math.round((baseCPU + (Math.random() - 0.5) * 0.01) * 10000) / 10000,
-      transactions: Math.round((150000 + Math.random() * 50000) * multiplier),
+      costPerUnit: Math.round((baseCPU + (rand() - 0.5) * 0.01) * 10000) / 10000,
+      transactions: Math.round((150000 + rand() * 50000) * multiplier),
     });
   }
 
   const topServices: ServiceUnitCost[] = services.map(service => {
-    const totalCost = (3000 + Math.random() * 12000) * multiplier;
-    const units = Math.round(50000 + Math.random() * 200000);
+    const totalCost = (3000 + rand() * 12000) * multiplier;
+    const units = Math.round(50000 + rand() * 200000);
     return {
       service,
       costPerUnit: Math.round((totalCost / units) * 10000) / 10000,
@@ -728,6 +772,7 @@ export interface WasteAnalysisData {
 }
 
 export function generateWasteAnalysis(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): WasteAnalysisData {
+  const rand = createSeededRandom(`waste-${orgUnitId}-${provider}`);
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 6);
   const regions = config.regions.slice(0, 4);
@@ -739,7 +784,7 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
     'No network traffic for 14 days',
     'Unattached volume',
     'Orphaned snapshot',
-    'Unused elastic IP',
+    'Unused reserved IP',
     'Oversized — using < 10% capacity',
     'Stopped instance still incurring storage costs',
     'Unused load balancer',
@@ -750,7 +795,7 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
     'Duplicate backup',
     'Oversized database instance',
     'Unused NAT gateway',
-    'Idle function with provisioned concurrency',
+    'Idle serverless function with reserved capacity',
     'Unattached network interface',
   ];
 
@@ -760,7 +805,7 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
     const region = regions[i % regions.length];
     const oId = orgUnitId === 'all' ? orgUnits[i % orgUnits.length].id : orgUnitId;
     const prefix = getResourceNamePrefix(provider, service);
-    const daysAgo = 7 + Math.floor(Math.random() * 60);
+    const daysAgo = 7 + Math.floor(rand() * 60);
     const lastActive = new Date();
     lastActive.setDate(lastActive.getDate() - daysAgo);
 
@@ -770,7 +815,7 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
       service,
       type: getResourceType(provider, service),
       region,
-      monthlyCost: Math.round((20 + Math.random() * 450) * 100) / 100,
+      monthlyCost: Math.round((20 + rand() * 450) * 100) / 100,
       reason: reasons[i % reasons.length],
       lastActive: lastActive.toISOString().split('T')[0],
       orgUnitId: oId,
@@ -781,7 +826,7 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
   const idleResources = resources.filter(r => r.reason.includes('Idle') || r.reason.includes('idle') || r.reason.includes('CPU')).length;
   const orphanedVolumes = resources.filter(r => r.reason.includes('Unattached') || r.reason.includes('Orphaned')).length;
   const oversized = resources.filter(r => r.reason.includes('Oversized') || r.reason.includes('oversized')).length;
-  const unattachedIPs = resources.filter(r => r.reason.includes('elastic IP') || r.reason.includes('Unused')).length;
+  const unattachedIPs = resources.filter(r => r.reason.includes('reserved IP') || r.reason.includes('Unused')).length;
 
   const categories: WasteCategory[] = [
     { name: 'Idle Resources', count: idleResources || 4, monthlyCost: Math.round(totalWaste * 0.35 * 100) / 100 },
@@ -793,7 +838,7 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
   return {
     summary: {
       totalWaste: Math.round(totalWaste * 100) / 100,
-      wastePercentage: Math.round((8 + Math.random() * 12) * 10) / 10,
+      wastePercentage: Math.round((8 + rand() * 12) * 10) / 10,
       idleResources: idleResources || 4,
       orphanedVolumes: orphanedVolumes || 3,
       oversizedInstances: oversized || 3,
@@ -806,11 +851,11 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
 
 // ==================== ORG UNIT SUMMARIES ====================
 
-export function generateOrgUnitSummaries(provider: CloudProvider): OrgUnitSummary[] {
+export function generateOrgUnitSummaries(provider: CloudProvider, dateRange?: DateRange): OrgUnitSummary[] {
   const orgUnits = getOrgUnits(provider);
   return orgUnits.map(orgUnit => {
-    const kpis = generateKPIs(orgUnit.id, provider);
-    const services = generateServiceBreakdown(orgUnit.id, provider);
+    const kpis = generateKPIs(orgUnit.id, provider, dateRange);
+    const services = generateServiceBreakdown(orgUnit.id, provider, dateRange);
     const recommendations = generateRecommendations(orgUnit.id, provider);
 
     return {

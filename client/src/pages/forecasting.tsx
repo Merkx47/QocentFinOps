@@ -25,6 +25,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Forecasting() {
   const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
@@ -77,6 +78,7 @@ export default function Forecasting() {
       icon: IconCalendarStats,
       color: 'text-blue-500',
       bg: 'bg-blue-500/10',
+      tooltip: 'ML-predicted total cloud spend by the end of the current month based on historical trends.',
     },
     {
       label: 'Projected Quarter End',
@@ -84,6 +86,7 @@ export default function Forecasting() {
       icon: IconTarget,
       color: 'text-emerald-500',
       bg: 'bg-emerald-500/10',
+      tooltip: 'Forecasted cumulative spend through the end of the current fiscal quarter.',
     },
     {
       label: 'Budget Breach Risk',
@@ -92,6 +95,7 @@ export default function Forecasting() {
       color: forecast.budgetBreachDate ? 'text-red-500' : 'text-emerald-500',
       bg: forecast.budgetBreachDate ? 'bg-red-500/10' : 'bg-emerald-500/10',
       isDate: true,
+      tooltip: 'Earliest predicted date when spending will exceed the allocated budget. "No Risk" means the budget is safe.',
     },
     {
       label: 'Confidence Level',
@@ -100,6 +104,7 @@ export default function Forecasting() {
       color: 'text-violet-500',
       bg: 'bg-violet-500/10',
       isPercent: true,
+      tooltip: 'Statistical confidence of the forecast model. Higher values indicate more reliable predictions.',
     },
   ];
 
@@ -124,38 +129,44 @@ export default function Forecasting() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 [&>*]:min-w-0">
           {summaryCards.map((card, i) => (
-            <motion.div
-              key={card.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={cn('p-2 rounded-lg', card.bg)}>
-                      <card.icon className={cn('h-5 w-5', card.color)} />
-                    </div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">{card.label}</p>
-                  </div>
-                  <p className="text-2xl font-bold font-mono">
-                    {card.isDate
-                      ? card.value
-                        ? new Date(card.value as string).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })
-                        : 'No Risk'
-                      : card.isPercent
-                        ? `${card.value}%`
-                        : formatCompactCurrency(card.value as number, currency)}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <UITooltip key={card.label} delayDuration={300}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                >
+                  <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={cn('p-2 rounded-lg', card.bg)}>
+                          <card.icon className={cn('h-5 w-5', card.color)} />
+                        </div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">{card.label}</p>
+                      </div>
+                      <p className="text-2xl font-bold font-mono">
+                        {card.isDate
+                          ? card.value
+                            ? new Date(card.value as string).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'No Risk'
+                          : card.isPercent
+                            ? `${card.value}%`
+                            : formatCompactCurrency(card.value as number, currency)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                <p className="text-xs">{card.tooltip}</p>
+              </TooltipContent>
+            </UITooltip>
           ))}
         </div>
 
@@ -221,7 +232,7 @@ export default function Forecasting() {
                       dataKey="lowerBound"
                       name="Lower Bound"
                       stroke="none"
-                      fill="#fff"
+                      fill="hsl(var(--background))"
                       fillOpacity={0}
                       connectNulls={false}
                     />
@@ -239,7 +250,7 @@ export default function Forecasting() {
                       type="monotone"
                       dataKey="forecast"
                       name="Forecast"
-                      stroke="#8b5cf6"
+                      stroke="hsl(var(--chart-5))"
                       strokeWidth={2}
                       strokeDasharray="5 5"
                       fillOpacity={1}
@@ -299,7 +310,7 @@ export default function Forecasting() {
           transition={{ duration: 0.4, delay: 0.35 }}
         >
           <h2 className="text-lg font-semibold mb-4">Scenario Comparison</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 [&>*]:min-w-0">
             {forecast.scenarios.map((scenario, i) => (
               <motion.div
                 key={scenario.name}

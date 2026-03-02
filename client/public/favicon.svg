@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Qocent red swoosh Q mark -->
+  <path d="M6 28C6 10 18 0 34 4C48 8 56 18 56 30C56 42 48 52 36 54L40 60L32 60L24 52C12 48 6 40 6 28Z" fill="#DC2626"/>
+  <circle cx="28" cy="28" r="11" fill="white"/>
+  <circle cx="28" cy="28" r="5.5" fill="#DC2626"/>
+</svg>

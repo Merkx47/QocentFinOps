@@ -10,32 +10,32 @@ import { IconArrowRight } from '@tabler/icons-react';
 
 const cardStyles: Record<CloudProvider, { bg: string; border: string; hoverBorder: string; iconBg: string; iconBorder: string }> = {
   aws: {
-    bg: 'bg-orange-50/60',
-    border: 'border-orange-200/50',
-    hoverBorder: 'hover:border-orange-300',
-    iconBg: 'bg-orange-100/60',
-    iconBorder: 'border-orange-200/40',
+    bg: 'bg-card',
+    border: 'border-border',
+    hoverBorder: 'hover:border-orange-400/60',
+    iconBg: 'bg-muted/50',
+    iconBorder: 'border-border',
   },
   azure: {
-    bg: 'bg-blue-50/60',
-    border: 'border-blue-200/50',
-    hoverBorder: 'hover:border-blue-300',
-    iconBg: 'bg-blue-100/60',
-    iconBorder: 'border-blue-200/40',
+    bg: 'bg-card',
+    border: 'border-border',
+    hoverBorder: 'hover:border-blue-400/60',
+    iconBg: 'bg-muted/50',
+    iconBorder: 'border-border',
   },
   gcp: {
-    bg: 'bg-sky-50/60',
-    border: 'border-sky-200/50',
-    hoverBorder: 'hover:border-sky-300',
-    iconBg: 'bg-sky-100/60',
-    iconBorder: 'border-sky-200/40',
+    bg: 'bg-card',
+    border: 'border-border',
+    hoverBorder: 'hover:border-sky-400/60',
+    iconBg: 'bg-muted/50',
+    iconBorder: 'border-border',
   },
   huawei: {
-    bg: 'bg-red-50/60',
-    border: 'border-red-200/50',
-    hoverBorder: 'hover:border-red-300',
-    iconBg: 'bg-red-100/60',
-    iconBorder: 'border-red-200/40',
+    bg: 'bg-card',
+    border: 'border-border',
+    hoverBorder: 'hover:border-red-400/60',
+    iconBg: 'bg-muted/50',
+    iconBorder: 'border-border',
   },
 };
 
@@ -56,10 +56,10 @@ export default function ProviderSelect() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-blue-50/60 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-violet-50/60 blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-muted/40 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-muted/40 blur-3xl" />
       </div>
 
       <div className="w-full max-w-3xl relative z-10">
@@ -70,10 +70,10 @@ export default function ProviderSelect() {
           className="text-center mb-12"
         >
           <img src={qocentLogo} alt="Qocent" className="h-24 w-auto mx-auto mb-6" />
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-3">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">
             Qocent FinOps
           </h1>
-          <p className="text-base text-slate-500 max-w-md mx-auto leading-relaxed">
+          <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
             Select your cloud provider to get started with cost analytics and optimization
           </p>
         </motion.div>
@@ -102,23 +102,19 @@ export default function ProviderSelect() {
                 </div>
 
                 <div className="flex-1 min-w-0 relative z-10">
-                  <h2 className="text-base font-semibold text-slate-900 mb-0.5">
+                  <h2 className="text-base font-semibold text-foreground mb-0.5">
                     {config.shortName}
                   </h2>
-                  <p className="text-sm text-slate-500 leading-snug">{config.tagline}</p>
+                  <p className="text-sm text-muted-foreground leading-snug">{config.tagline}</p>
                 </div>
 
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-background/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0">
                   <IconArrowRight
                     className="h-4 w-4 transition-colors duration-300"
                     style={{ color: config.colors.primary }}
                   />
                 </div>
 
-                <div
-                  className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{ background: config.colors.gradient }}
-                />
               </motion.button>
             );
           })}
@@ -128,7 +124,7 @@ export default function ProviderSelect() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.8 }}
-          className="text-center text-xs text-slate-400 mt-10"
+          className="text-center text-xs text-muted-foreground mt-10"
         >
           One Window, All Cloud
         </motion.p>

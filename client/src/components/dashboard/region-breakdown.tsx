@@ -22,11 +22,11 @@ const REGION_COLORS = [
 ];
 
 export function RegionBreakdownChart() {
-  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
-  
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
+
   const regionNames = useMemo(() => getRegionNames(selectedProvider), [selectedProvider]);
   const providerConfig = useMemo(() => getProviderConfig(selectedProvider), [selectedProvider]);
-  const breakdown = useMemo(() => generateRegionBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const breakdown = useMemo(() => generateRegionBreakdown(selectedOrgUnitId, selectedProvider, dateRange), [selectedOrgUnitId, selectedProvider, dateRange]);
   
   const chartData = breakdown.map((item, index) => ({
     region: item.region,

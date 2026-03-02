@@ -1,6 +1,6 @@
 import { useLocation, useSearch } from 'wouter';
 import { motion } from 'framer-motion';
-import { IconArrowLeft, IconMail, IconLock, IconShieldCheck, IconBolt, IconChartBar } from '@tabler/icons-react';
+import { IconArrowLeft, IconMail, IconLock, IconShieldCheck, IconBolt, IconChartBar, IconLoader2 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,10 +34,14 @@ export default function Login() {
   const { login } = useFinOpsStore();
   const [email, setEmail] = useState('admin@company.com');
   const [password, setPassword] = useState('password');
+  const [ssoLoading, setSsoLoading] = useState(false);
 
   const handleSSOLogin = () => {
-    login(providerId, { name: 'Admin User', email: 'admin@company.com', role: 'Administrator' });
-    navigate('/dashboard');
+    setSsoLoading(true);
+    setTimeout(() => {
+      login(providerId, { name: 'Admin User', email: 'admin@company.com', role: 'Administrator' });
+      navigate('/dashboard');
+    }, 1800);
   };
 
   const handleFormLogin = (e: React.FormEvent) => {
@@ -53,7 +57,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       <div
-        className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between p-10"
+        className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-center p-14"
         style={{ background: config.colors.gradient }}
       >
         <div className="absolute inset-0 opacity-10">
@@ -66,30 +70,30 @@ export default function Login() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 space-y-8"
+          className="relative z-10 space-y-10"
         >
           <div>
-            <h2 className="text-3xl font-bold text-white leading-tight mb-3">
+            <h2 className="text-5xl font-bold text-white leading-tight mb-5">
               One Window,<br />All Cloud.
             </h2>
-            <p className="text-white/70 text-base leading-relaxed max-w-sm">
+            <p className="text-white/70 text-xl leading-relaxed max-w-sm">
               Manage and optimize your {config.shortName} cloud costs from a single, intelligent platform.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {features.map((feature, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
-                className="flex items-center gap-3"
+                className="flex items-center gap-4"
               >
-                <div className="w-9 h-9 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                  <feature.icon className="h-4 w-4 text-white" />
+                <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-sm text-white/90">{feature.text}</span>
+                <span className="text-lg text-white/90">{feature.text}</span>
               </motion.div>
             ))}
           </div>
@@ -99,13 +103,13 @@ export default function Login() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.8 }}
-          className="relative z-10 text-xs text-white/40"
+          className="absolute bottom-8 left-14 z-10 text-sm text-white/40"
         >
           Qocent FinOps Platform
         </motion.p>
       </div>
 
-      <div className="flex-1 bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-6">
+      <div className="flex-1 bg-background flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -113,61 +117,72 @@ export default function Login() {
           className="w-full max-w-sm"
         >
           <div className="flex flex-col items-center mb-8">
-            <div className="w-20 h-20 rounded-2xl bg-white shadow-lg shadow-slate-200/60 border border-slate-100 flex items-center justify-center mb-5">
+            <div className="w-20 h-20 rounded-2xl bg-card shadow-lg border border-border flex items-center justify-center mb-5">
               <ProviderLogo provider={providerId} />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">{config.name}</h1>
-            <p className="text-slate-400 mt-1 text-sm">Sign in to your FinOps dashboard</p>
+            <h1 className="text-2xl font-bold text-foreground">{config.name}</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Sign in to your FinOps dashboard</p>
           </div>
 
           <div className="space-y-5">
             <Button
               onClick={handleSSOLogin}
-              className="w-full h-12 text-white font-medium rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+              disabled={ssoLoading}
+              className="w-full h-12 text-white font-medium rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] disabled:opacity-90"
               style={{
                 background: config.colors.gradient,
               }}
             >
-              {config.terminology.ssoButtonLabel}
+              {ssoLoading ? (
+                <span className="flex items-center gap-2">
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                  Redirecting to identity provider...
+                </span>
+              ) : (
+                config.terminology.ssoButtonLabel
+              )}
             </Button>
+            <p className="text-xs text-muted-foreground text-center -mt-2">
+              {ssoLoading ? 'Please wait...' : "Use your organization's identity provider"}
+            </p>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-gradient-to-br from-slate-50 via-white to-slate-50 px-3 text-slate-400 text-xs">
-                  or sign in with email
+                <span className="bg-background px-3 text-muted-foreground text-xs">
+                  or sign in with credentials
                 </span>
               </div>
             </div>
 
             <form onSubmit={handleFormLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-slate-600 text-xs font-medium">Email</Label>
+                <Label htmlFor="email" className="text-muted-foreground text-xs font-medium">Email</Label>
                 <div className="relative">
-                  <IconMail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <IconMail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-11 bg-slate-50/80 border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-offset-0 transition-shadow"
+                    className="pl-10 h-11 bg-background border-input text-foreground rounded-xl focus:ring-2 focus:ring-offset-0 transition-shadow"
                     style={{ ['--tw-ring-color' as string]: config.colors.primary + '30' }}
                     placeholder="admin@company.com"
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-slate-600 text-xs font-medium">Password</Label>
+                <Label htmlFor="password" className="text-muted-foreground text-xs font-medium">Password</Label>
                 <div className="relative">
-                  <IconLock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <IconLock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-11 bg-slate-50/80 border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-offset-0 transition-shadow"
+                    className="pl-10 h-11 bg-background border-input text-foreground rounded-xl focus:ring-2 focus:ring-offset-0 transition-shadow"
                     style={{ ['--tw-ring-color' as string]: config.colors.primary + '30' }}
                     placeholder="Enter password"
                   />
@@ -176,7 +191,7 @@ export default function Login() {
               <Button
                 type="submit"
                 variant="outline"
-                className="w-full h-11 border-slate-200 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-50"
+                className="w-full h-11 rounded-xl"
               >
                 Sign In
               </Button>
@@ -185,7 +200,7 @@ export default function Login() {
 
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-700 mt-8 mx-auto transition-colors group"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mt-8 mx-auto transition-colors group"
           >
             <IconArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             <span className="text-sm">Back to provider selection</span>

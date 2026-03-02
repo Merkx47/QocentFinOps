@@ -1,13 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { 
+import {
   IconHelp,
   IconSearch,
   IconBook2,
@@ -19,6 +23,8 @@ import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFinOpsStore } from '@/lib/finops-store';
 import { getProviderConfig } from '@/lib/provider-config';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 function useFaqs() {
   const { selectedProvider } = useFinOpsStore();
@@ -44,7 +50,7 @@ function useFaqs() {
     },
     {
       question: 'What currencies are supported?',
-      answer: 'The dashboard supports USD, GBP, EUR, and JPY. You can change your preferred currency in Settings or use the currency switcher in the header.',
+      answer: 'The dashboard supports USD, GBP, EUR, JPY, NGN, and CNY. You can change your preferred currency in Settings or use the currency switcher in the header.',
     },
     {
       question: 'How are optimization recommendations generated?',
@@ -55,6 +61,18 @@ function useFaqs() {
 
 export default function Help() {
   const faqs = useFaqs();
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ subject: '', message: '', priority: 'medium' });
+
+  const handleSubmitTicket = () => {
+    if (!form.subject.trim() || !form.message.trim()) return;
+    const ticketNumber = Math.floor(1000 + Math.random() * 9000);
+    setForm({ subject: '', message: '', priority: 'medium' });
+    setDialogOpen(false);
+    toast({ title: "Support Ticket Submitted", description: `Ticket #${ticketNumber} submitted. We'll respond within 24 hours.` });
+  };
+
   return (
     <ScrollArea className="h-full">
       <div className="p-6 max-w-[1200px] mx-auto" data-testid="help-page">
@@ -89,7 +107,7 @@ export default function Help() {
           {[
             { icon: IconBook2, title: 'Documentation', desc: 'Read the full docs' },
             { icon: IconMessageCircle, title: 'Live Chat', desc: 'Talk to our team' },
-            { icon: IconMail, title: 'Email Support', desc: 'support@finops.cloud' },
+            { icon: IconMail, title: 'Email Support', desc: 'support@qocent.com' },
           ].map((item, i) => (
             <motion.div
               key={item.title}
@@ -148,12 +166,61 @@ export default function Help() {
           <p className="text-sm text-muted-foreground mb-4">
             Can't find what you're looking for?
           </p>
-          <Button>
+          <Button onClick={() => setDialogOpen(true)}>
             Contact Support
             <IconExternalLink className="h-4 w-4 ml-2" />
           </Button>
         </motion.div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contact Support</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="ticket-subject">Subject <span className="text-destructive">*</span></Label>
+              <Input
+                id="ticket-subject"
+                placeholder="Enter subject"
+                value={form.subject}
+                onChange={(e) => setForm(prev => ({ ...prev, subject: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticket-message">Message <span className="text-destructive">*</span></Label>
+              <Textarea
+                id="ticket-message"
+                placeholder="Describe your issue..."
+                rows={4}
+                value={form.message}
+                onChange={(e) => setForm(prev => ({ ...prev, message: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticket-priority">Priority</Label>
+              <Select value={form.priority} onValueChange={(value) => setForm(prev => ({ ...prev, priority: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmitTicket} disabled={!form.subject.trim() || !form.message.trim()}>Submit Ticket</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScrollArea>
   );
 }

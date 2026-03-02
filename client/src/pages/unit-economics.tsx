@@ -41,11 +41,11 @@ const metricIcons = [
 ];
 
 export default function UnitEconomics() {
-  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
 
   const data = useMemo(
-    () => generateUnitEconomics(selectedOrgUnitId, selectedProvider),
-    [selectedOrgUnitId, selectedProvider],
+    () => generateUnitEconomics(selectedOrgUnitId, selectedProvider, dateRange),
+    [selectedOrgUnitId, selectedProvider, dateRange],
   );
 
   const formatDate = (dateStr: string) => {
@@ -60,7 +60,7 @@ export default function UnitEconomics() {
           <p className="text-xs text-muted-foreground mb-1">{formatDate(label)}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm font-mono font-semibold" style={{ color: entry.color }}>
-              {entry.name}: {entry.name === 'Transactions' ? entry.value.toLocaleString() : `$${entry.value.toFixed(4)}`}
+              {entry.name}: {entry.name === 'Transactions' ? entry.value.toLocaleString() : formatCurrency(entry.value, currency)}
             </p>
           ))}
         </div>
@@ -122,7 +122,7 @@ export default function UnitEconomics() {
                       {metric.name}
                     </p>
                     <p className="text-2xl font-bold font-mono">
-                      ${metric.value < 1 ? metric.value.toFixed(4) : metric.value.toFixed(2)}
+                      {formatCurrency(metric.value, currency)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">{metric.unit}</p>
                   </CardContent>
@@ -164,7 +164,7 @@ export default function UnitEconomics() {
                     />
                     <YAxis
                       yAxisId="left"
-                      tickFormatter={(v) => `$${v.toFixed(3)}`}
+                      tickFormatter={(v) => formatCompactCurrency(v, currency)}
                       tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                       axisLine={false}
                       tickLine={false}
@@ -229,7 +229,7 @@ export default function UnitEconomics() {
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
                       <XAxis
                         type="number"
-                        tickFormatter={(v) => `$${v.toFixed(3)}`}
+                        tickFormatter={(v) => formatCompactCurrency(v, currency)}
                         tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                       />
                       <YAxis
@@ -239,7 +239,7 @@ export default function UnitEconomics() {
                         width={70}
                       />
                       <Tooltip
-                        formatter={(value: number) => `$${value.toFixed(4)}`}
+                        formatter={(value: number) => formatCurrency(value, currency)}
                         labelFormatter={(label) => `Service: ${label}`}
                       />
                       <Bar dataKey="costPerUnit" name="Cost per Unit" radius={[0, 4, 4, 0]} maxBarSize={20}>
@@ -285,14 +285,14 @@ export default function UnitEconomics() {
                         tickLine={false}
                       />
                       <YAxis
-                        tickFormatter={(v) => `$${v.toFixed(3)}`}
+                        tickFormatter={(v) => formatCompactCurrency(v, currency)}
                         tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                         axisLine={false}
                         tickLine={false}
                         width={70}
                       />
                       <Tooltip
-                        formatter={(value: number) => `$${value.toFixed(4)}`}
+                        formatter={(value: number) => formatCurrency(value, currency)}
                         labelFormatter={(label) => formatDate(label as string)}
                       />
                       <Line
@@ -338,7 +338,7 @@ export default function UnitEconomics() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-mono font-semibold">${svc.costPerUnit.toFixed(4)}/unit</p>
+                      <p className="text-sm font-mono font-semibold">{formatCurrency(svc.costPerUnit, currency)}/unit</p>
                       <p className="text-xs text-muted-foreground">
                         Total: {formatCurrency(svc.totalCost, currency)}
                       </p>

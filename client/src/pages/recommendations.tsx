@@ -9,10 +9,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateRecommendations } from '@/lib/mock-data';
 import { getServiceInfo } from '@/lib/provider-config';
-import type { RecommendationType, RecommendationImpact } from '@shared/schema';
+import type { Recommendation, RecommendationType, RecommendationImpact } from '@shared/schema';
 import { useMemo, useState } from 'react';
 import { 
   IconBulb,
@@ -34,6 +41,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const typeIcons: Record<string, typeof IconServer2> = {
   rightsizing: IconGauge,
@@ -91,28 +99,36 @@ export default function Recommendations() {
   const { toast } = useToast();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [impactFilter, setImpactFilter] = useState<string>('all');
-  
+  const [implementedIds, setImplementedIds] = useState<Set<string>>(new Set());
+  const [detailRec, setDetailRec] = useState<Recommendation | null>(null);
+
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
 
   const recommendations = useMemo(() => generateRecommendations(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+
+  const enhancedRecommendations = useMemo(() => {
+    return recommendations.map(r =>
+      implementedIds.has(r.id) ? { ...r, status: 'implemented' as const } : r
+    );
+  }, [recommendations, implementedIds]);
   
   const filteredRecommendations = useMemo(() => {
-    return recommendations.filter(r => {
+    return enhancedRecommendations.filter(r => {
       const matchesType = typeFilter === 'all' || r.type === typeFilter;
       const matchesImpact = impactFilter === 'all' || r.impact === impactFilter;
       return matchesType && matchesImpact;
     });
-  }, [recommendations, typeFilter, impactFilter]);
+  }, [enhancedRecommendations, typeFilter, impactFilter]);
 
   const stats = useMemo(() => {
-    const newCount = recommendations.filter(r => r.status === 'new').length;
-    const totalSavings = recommendations.filter(r => r.status === 'new').reduce((sum, r) => sum + r.projectedSavings, 0);
-    const highImpact = recommendations.filter(r => r.impact === 'high' && r.status === 'new').length;
-    const easyWins = recommendations.filter(r => r.effort === 'easy' && r.status === 'new').length;
+    const newCount = enhancedRecommendations.filter(r => r.status === 'new').length;
+    const totalSavings = enhancedRecommendations.filter(r => r.status === 'new').reduce((sum, r) => sum + r.projectedSavings, 0);
+    const highImpact = enhancedRecommendations.filter(r => r.impact === 'high' && r.status === 'new').length;
+    const easyWins = enhancedRecommendations.filter(r => r.effort === 'easy' && r.status === 'new').length;
     return { newCount, totalSavings, highImpact, easyWins };
-  }, [recommendations]);
+  }, [enhancedRecommendations]);
 
-  const byType = recommendations.reduce((acc, r) => {
+  const byType = enhancedRecommendations.reduce((acc, r) => {
     if (!acc[r.type]) acc[r.type] = { count: 0, savings: 0 };
     acc[r.type].count++;
     acc[r.type].savings += r.projectedSavings;
@@ -134,42 +150,58 @@ export default function Recommendations() {
               AI-powered recommendations to reduce your cloud spend
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90" data-testid="button-implement-all" onClick={() => toast({ title: "Implementing Recommendations", description: `Processing ${stats.easyWins} easy-win optimizations...` })}>
+          <Button className="bg-primary hover:bg-primary/90" data-testid="button-implement-all" onClick={() => {
+            const easyWinRecs = enhancedRecommendations.filter(r => r.effort === 'easy' && r.status === 'new');
+            if (easyWinRecs.length === 0) {
+              toast({ title: "No Easy Wins Available", description: "There are no new easy-effort recommendations to implement." });
+              return;
+            }
+            const newIds = new Set(implementedIds);
+            easyWinRecs.forEach(r => newIds.add(r.id));
+            setImplementedIds(newIds);
+            toast({ title: "Easy Wins Implemented", description: `Successfully implemented ${easyWinRecs.length} easy-win optimizations.` });
+          }}>
             <IconBolt className="h-4 w-4 mr-2" />
             Implement Easy Wins
           </Button>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
           {[
-            { label: 'New Recommendations', value: stats.newCount, icon: IconBulb, color: 'text-amber-500' },
-            { label: 'Potential Savings', value: formatCurrency(stats.totalSavings, currency), icon: IconTrendingDown, color: 'text-emerald-500', isValue: true },
-            { label: 'High Impact', value: stats.highImpact, icon: IconTarget, color: 'text-primary' },
-            { label: 'Easy Wins', value: stats.easyWins, icon: IconBolt, color: 'text-blue-500' },
+            { label: 'New Recommendations', value: stats.newCount, icon: IconBulb, color: 'text-amber-500', tooltip: 'Newly identified optimization opportunities that have not yet been reviewed or acted on.' },
+            { label: 'Potential Savings', value: formatCurrency(stats.totalSavings, currency), icon: IconTrendingDown, color: 'text-emerald-500', isValue: true, tooltip: 'Total estimated monthly savings if all current recommendations are implemented.' },
+            { label: 'High Impact', value: stats.highImpact, icon: IconTarget, color: 'text-primary', tooltip: 'Recommendations with significant cost savings potential, typically over $500/month per item.' },
+            { label: 'Easy Wins', value: stats.easyWins, icon: IconBolt, color: 'text-blue-500', tooltip: 'Low-effort optimizations that can be implemented quickly with minimal risk to workloads.' },
           ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                      <p className={cn(
-                        "font-bold font-mono",
-                        stat.isValue ? "text-xl" : "text-2xl"
-                      )}>{stat.value}</p>
-                    </div>
-                    <div className={cn("p-2.5 rounded-xl", stat.color === 'text-emerald-500' ? 'bg-emerald-500/10' : stat.color === 'text-amber-500' ? 'bg-amber-500/10' : stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10')}>
-                      <stat.icon className={cn("h-6 w-6", stat.color)} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <Tooltip key={stat.label} delayDuration={300}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                >
+                  <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                          <p className={cn(
+                            "font-bold font-mono",
+                            stat.isValue ? "text-xl" : "text-2xl"
+                          )}>{stat.value}</p>
+                        </div>
+                        <div className={cn("p-2.5 rounded-xl", stat.color === 'text-emerald-500' ? 'bg-emerald-500/10' : stat.color === 'text-amber-500' ? 'bg-amber-500/10' : stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10')}>
+                          <stat.icon className={cn("h-6 w-6", stat.color)} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                <p className="text-xs">{stat.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
 
@@ -334,7 +366,7 @@ export default function Recommendations() {
                                     <span className="text-xs">/mo</span>
                                   </div>
                                 </div>
-                                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Recommendation Details", description: "Opening detailed analysis for this recommendation..." })}>
+                                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => setDetailRec(rec)}>
                                   View Details
                                   <IconArrowUpRight className="h-4 w-4 ml-1" />
                                 </Button>
@@ -363,6 +395,93 @@ export default function Recommendations() {
           </motion.div>
         </div>
       </div>
+
+      <Sheet open={!!detailRec} onOpenChange={(open) => { if (!open) setDetailRec(null); }}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          {detailRec && (() => {
+            const Icon = typeIcons[detailRec.type] || IconServer2;
+            const impact = impactColors[detailRec.impact];
+            const isImplemented = detailRec.status === 'implemented';
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle>{detailRec.title}</SheetTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {detailRec.service} &mdash; {detailRec.resourceName}
+                  </p>
+                </SheetHeader>
+
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Type</span>
+                    <Badge variant="secondary" className="text-xs">
+                      <Icon className="h-3 w-3 mr-1" />
+                      {typeLabels[detailRec.type] || detailRec.type}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Impact</span>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-xs border", impact.bg, impact.text, impact.border)}
+                    >
+                      {detailRec.impact.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Effort</span>
+                    <Badge variant="secondary" className="text-xs capitalize">{detailRec.effort}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <Badge
+                      variant="secondary"
+                      className={cn("text-xs", statusInfo[detailRec.status].color)}
+                    >
+                      {statusInfo[detailRec.status].label}
+                    </Badge>
+                  </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground mt-6 leading-relaxed">
+                  {detailRec.description}
+                </p>
+
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Current Monthly Cost</p>
+                    <p className="text-2xl font-mono font-bold">{formatCurrency(detailRec.currentCost, currency)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Projected Savings</p>
+                    <p className="text-2xl font-mono font-bold text-emerald-500">{formatCurrency(detailRec.projectedSavings, currency)}</p>
+                  </div>
+                </div>
+
+                <SheetFooter className="mt-8">
+                  <Button variant="outline" onClick={() => setDetailRec(null)}>Close</Button>
+                  {isImplemented ? (
+                    <Button disabled>Already Implemented</Button>
+                  ) : (
+                    <Button
+                      className="bg-primary hover:bg-primary/90"
+                      onClick={() => {
+                        const newIds = new Set(implementedIds);
+                        newIds.add(detailRec.id);
+                        setImplementedIds(newIds);
+                        toast({ title: "Recommendation Implemented", description: `"${detailRec.title}" has been implemented.` });
+                        setDetailRec(null);
+                      }}
+                    >
+                      Implement Now
+                    </Button>
+                  )}
+                </SheetFooter>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
     </ScrollArea>
   );
 }

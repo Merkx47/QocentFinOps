@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -29,10 +30,14 @@ import {
   IconFlame,
   IconArrowDown,
   IconBolt,
+  IconSearch,
 } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTableControls } from '@/hooks/use-table-controls';
+import { TablePagination } from '@/components/ui/table-pagination';
 import {
   PieChart,
   Pie,
@@ -56,6 +61,7 @@ export default function WasteDetection() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'cost' | 'lastActive'>('cost');
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const wasteData = useMemo(
     () => generateWasteAnalysis(selectedOrgUnitId, selectedProvider),
@@ -64,6 +70,17 @@ export default function WasteDetection() {
 
   const filteredResources = useMemo(() => {
     let resources = wasteData.resources.filter((r) => !removedIds.has(r.id));
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      resources = resources.filter(
+        (r) =>
+          r.name.toLowerCase().includes(query) ||
+          r.service.toLowerCase().includes(query) ||
+          r.type.toLowerCase().includes(query) ||
+          r.region.toLowerCase().includes(query) ||
+          r.reason.toLowerCase().includes(query)
+      );
+    }
     if (categoryFilter !== 'all') {
       resources = resources.filter((r) => r.reason === categoryFilter);
     }
@@ -75,7 +92,9 @@ export default function WasteDetection() {
       );
     }
     return resources;
-  }, [wasteData.resources, categoryFilter, sortBy, removedIds]);
+  }, [wasteData.resources, categoryFilter, sortBy, removedIds, searchQuery]);
+
+  const { currentPage, setCurrentPage, totalPages, pageSize, paginatedData, totalItems } = useTableControls(filteredResources);
 
   const quickWins = useMemo(
     () =>
@@ -106,51 +125,61 @@ export default function WasteDetection() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
           {[
             {
               label: 'Total Waste',
               value: formatCurrency(wasteData.summary.totalWaste, currency),
               icon: IconTrash,
               color: 'text-red-500',
+              tooltip: 'Estimated monthly cost of all identified wasteful resources including idle, orphaned, and oversized items.',
             },
             {
               label: 'Waste % of Spend',
               value: `${wasteData.summary.wastePercentage.toFixed(1)}%`,
               icon: IconFlame,
               color: 'text-amber-500',
+              tooltip: 'Proportion of total cloud spend attributed to waste. Industry benchmark is below 15%.',
             },
             {
               label: 'Idle Resources',
               value: wasteData.summary.idleResources.toString(),
               icon: IconServer2,
               color: 'text-violet-500',
+              tooltip: 'Running resources with near-zero utilization over an extended period, candidates for termination.',
             },
             {
               label: 'Orphaned Volumes',
               value: wasteData.summary.orphanedVolumes.toString(),
               icon: IconDeviceSdCard,
               color: 'text-indigo-500',
+              tooltip: 'Unattached storage volumes no longer connected to any compute instance, incurring unnecessary charges.',
             },
           ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                      <p className="text-xl font-bold font-mono">{stat.value}</p>
-                    </div>
-                    <stat.icon className={cn('h-8 w-8', stat.color)} />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <UITooltip key={stat.label} delayDuration={300}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                >
+                  <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                          <p className="text-xl font-bold font-mono">{stat.value}</p>
+                        </div>
+                        <stat.icon className={cn('h-8 w-8', stat.color)} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                <p className="text-xs">{stat.tooltip}</p>
+              </TooltipContent>
+            </UITooltip>
           ))}
         </div>
 
@@ -233,7 +262,7 @@ export default function WasteDetection() {
                     return (
                       <div
                         key={cat.name}
-                        className="p-4 rounded-xl border border-slate-200 bg-slate-50/50"
+                        className="p-4 rounded-xl border border-border bg-muted/50"
                       >
                         <div className="flex items-center gap-3 mb-3">
                           <div
@@ -288,7 +317,7 @@ export default function WasteDetection() {
                 {quickWins.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between"
+                    className="p-3 rounded-xl border border-border bg-muted/50 flex flex-col justify-between"
                   >
                     <div>
                       <p className="font-medium text-sm truncate">{item.name}</p>
@@ -327,6 +356,15 @@ export default function WasteDetection() {
                   </Badge>
                 </CardTitle>
                 <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search resources..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 w-[200px]"
+                    />
+                  </div>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Category" />
@@ -371,7 +409,7 @@ export default function WasteDetection() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredResources.map((resource) => (
+                    {paginatedData.map((resource) => (
                       <TableRow key={resource.id} className="hover-elevate cursor-pointer">
                         <TableCell>
                           <p className="font-medium text-sm">{resource.name}</p>
@@ -425,6 +463,13 @@ export default function WasteDetection() {
                   </TableBody>
                 </Table>
               </div>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
             </CardContent>
           </Card>
         </motion.div>

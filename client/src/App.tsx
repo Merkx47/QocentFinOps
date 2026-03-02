@@ -19,17 +19,16 @@ import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import Help from "@/pages/help";
 import Anomalies from "@/pages/anomalies";
-import SavingsPlans from "@/pages/savings-plans";
 import Forecasting from "@/pages/forecasting";
 import Tagging from "@/pages/tagging";
-import UnitEconomics from "@/pages/unit-economics";
 import Waste from "@/pages/waste";
+import Notifications from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
 import { FinOpsAssistant } from "@/components/finops-assistant";
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Header />
       <div className="flex">
         <Sidebar />
@@ -67,11 +66,10 @@ function DashboardRouter() {
       <Route path="/settings" component={Settings} />
       <Route path="/help" component={Help} />
       <Route path="/anomalies" component={Anomalies} />
-      <Route path="/savings-plans" component={SavingsPlans} />
       <Route path="/forecasting" component={Forecasting} />
       <Route path="/tagging" component={Tagging} />
-      <Route path="/unit-economics" component={UnitEconomics} />
       <Route path="/waste" component={Waste} />
+      <Route path="/notifications" component={Notifications} />
       <Route component={NotFound} />
     </Switch>
   );

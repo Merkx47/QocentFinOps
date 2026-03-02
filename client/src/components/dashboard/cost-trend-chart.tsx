@@ -17,9 +17,9 @@ import { IconDownload, IconTrendingUp } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 
 export function CostTrendChart() {
-  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
-  
-  const costTrend = useMemo(() => generateCostTrend(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
+
+  const costTrend = useMemo(() => generateCostTrend(selectedOrgUnitId, selectedProvider, dateRange), [selectedOrgUnitId, selectedProvider, dateRange]);
   
   const today = new Date().toISOString().split('T')[0];
   const totalActual = costTrend
@@ -40,7 +40,7 @@ export function CostTrendChart() {
         <div className="bg-popover/95 backdrop-blur-sm border border-popover-border rounded-lg p-3 shadow-xl">
           <p className="text-xs text-muted-foreground mb-1">{formatDate(label)}</p>
           {isForecast ? (
-            <p className="text-sm font-mono font-semibold text-amber-500">
+            <p className="text-sm font-mono font-semibold text-purple-600 dark:text-purple-400">
               Forecast: {formatCompactCurrency(data.forecast, currency)}
             </p>
           ) : (
@@ -78,7 +78,7 @@ export function CostTrendChart() {
                 <span className="text-muted-foreground">Actual</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-amber-500" />
+                <div className="h-2 w-2 rounded-full bg-purple-600 dark:bg-purple-400" />
                 <span className="text-muted-foreground">Forecast</span>
               </div>
             </div>
@@ -92,7 +92,7 @@ export function CostTrendChart() {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={costTrend}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
               >
                 <defs>
                   <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
@@ -100,8 +100,8 @@ export function CostTrendChart() {
                     <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    <stop offset="5%" stopColor="hsl(var(--chart-5))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-5))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid 
@@ -127,13 +127,33 @@ export function CostTrendChart() {
                 <Tooltip content={<CustomTooltip />} />
                 <ReferenceLine
                   x={today}
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeDasharray="3 3"
-                  label={{
-                    value: 'Today',
-                    position: 'top',
-                    fontSize: 10,
-                    fill: 'hsl(var(--muted-foreground))',
+                  stroke="hsl(var(--foreground))"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={({ viewBox }: any) => {
+                    const { x } = viewBox;
+                    return (
+                      <g>
+                        <rect
+                          x={x - 22}
+                          y={4}
+                          width={44}
+                          height={18}
+                          rx={9}
+                          fill="hsl(var(--foreground))"
+                        />
+                        <text
+                          x={x}
+                          y={16}
+                          textAnchor="middle"
+                          fontSize={10}
+                          fontWeight={600}
+                          fill="hsl(var(--background))"
+                        >
+                          Today
+                        </text>
+                      </g>
+                    );
                   }}
                 />
                 <Area
@@ -147,7 +167,7 @@ export function CostTrendChart() {
                 <Area
                   type="monotone"
                   dataKey="forecast"
-                  stroke="#f59e0b"
+                  stroke="hsl(var(--chart-5))"
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   fillOpacity={1}

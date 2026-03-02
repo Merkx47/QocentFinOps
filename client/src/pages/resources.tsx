@@ -21,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
 import { generateResources } from '@/lib/mock-data';
 import { getServiceInfo, getRegionNames } from '@/lib/provider-config';
+import { downloadCsv } from '@/lib/csv-utils';
 import { useMemo, useState } from 'react';
 import { 
   IconServer2,
@@ -40,6 +41,9 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { useTableControls } from '@/hooks/use-table-controls';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 const getUtilizationBadge = (value: number) => {
   if (value < 20) return { label: 'Low', color: 'text-destructive bg-destructive/10' };
@@ -55,11 +59,16 @@ export default function Resources() {
   const [searchQuery, setSearchQuery] = useState('');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [syncing, setSyncing] = useState(false);
+  const [syncSeed, setSyncSeed] = useState(0);
   
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
   const regionNames = useMemo(() => getRegionNames(selectedProvider), [selectedProvider]);
 
-  const resources = useMemo(() => generateResources(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
+  const resources = useMemo(() => {
+    const orgId = syncSeed > 0 ? `${selectedOrgUnitId}-sync${syncSeed}` : selectedOrgUnitId;
+    return generateResources(orgId, selectedProvider);
+  }, [selectedOrgUnitId, selectedProvider, syncSeed]);
   
   const filteredResources = useMemo(() => {
     return resources.filter(r => {
@@ -69,6 +78,8 @@ export default function Resources() {
       return matchesSearch && matchesService && matchesStatus;
     });
   }, [resources, searchQuery, serviceFilter, statusFilter]);
+
+  const { currentPage, setCurrentPage, totalPages, pageSize, paginatedData, totalItems } = useTableControls(filteredResources);
 
   const stats = useMemo(() => {
     const running = resources.filter(r => r.status === 'running').length;
@@ -96,45 +107,82 @@ export default function Resources() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => toast({ title: "Syncing Resources", description: "Synchronizing resource inventory..." })}>
-              <IconRefresh className="h-4 w-4 mr-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={syncing}
+              onClick={() => {
+                setSyncing(true);
+                setTimeout(() => {
+                  setSyncSeed(prev => prev + 1);
+                  setSyncing(false);
+                  toast({ title: "Sync complete", description: "Resource inventory has been synchronized." });
+                }, 1500);
+              }}
+            >
+              <IconRefresh className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
               Sync
             </Button>
-            <Button variant="outline" size="sm" onClick={() => toast({ title: "Exporting Resources", description: "Preparing resource inventory export..." })}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const headers = ['Name', 'Type', 'Service', 'Region', 'Status', 'CPU %', 'Memory %', 'Network %', 'Monthly Cost'];
+                const rows = filteredResources.map(r => [
+                  r.name,
+                  r.type,
+                  r.service,
+                  r.region,
+                  r.status,
+                  r.cpuUtilization,
+                  r.memoryUtilization,
+                  r.networkUtilization,
+                  r.monthlyCost,
+                ]);
+                downloadCsv('resources-export.csv', headers, rows);
+                toast({ title: "Export complete", description: `Exported ${filteredResources.length} resources to CSV.` });
+              }}
+            >
               <IconDownload className="h-4 w-4 mr-2" />
               Export
             </Button>
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
           {[
-            { label: 'Running', value: stats.running, icon: IconCircleCheck, color: 'text-emerald-500' },
-            { label: 'Stopped', value: stats.stopped, icon: IconCircleX, color: 'text-muted-foreground' },
-            { label: 'Underutilized', value: stats.underutilized, icon: IconAlertTriangle, color: 'text-amber-500' },
-            { label: 'Monthly Cost', value: formatCurrency(stats.totalCost, currency), icon: IconServer2, color: 'text-primary', isValue: true },
+            { label: 'Running', value: stats.running, icon: IconCircleCheck, color: 'text-emerald-500', tooltip: 'Number of cloud resources currently in a running state and actively incurring compute charges.' },
+            { label: 'Stopped', value: stats.stopped, icon: IconCircleX, color: 'text-muted-foreground', tooltip: 'Resources that are stopped but may still incur storage or allocation costs.' },
+            { label: 'Underutilized', value: stats.underutilized, icon: IconAlertTriangle, color: 'text-amber-500', tooltip: 'Resources with CPU or memory utilization below 40%, candidates for rightsizing or termination.' },
+            { label: 'Monthly Cost', value: formatCurrency(stats.totalCost, currency), icon: IconServer2, color: 'text-primary', isValue: true, tooltip: 'Total estimated monthly cost across all provisioned resources in the current view.' },
           ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                      <p className={cn(
-                        "font-bold font-mono",
-                        stat.isValue ? "text-xl" : "text-2xl"
-                      )}>{stat.value}</p>
-                    </div>
-                    <stat.icon className={cn("h-8 w-8", stat.color)} />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <Tooltip key={stat.label} delayDuration={300}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                >
+                  <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                          <p className={cn(
+                            "font-bold font-mono",
+                            stat.isValue ? "text-xl" : "text-2xl"
+                          )}>{stat.value}</p>
+                        </div>
+                        <stat.icon className={cn("h-8 w-8", stat.color)} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                <p className="text-xs">{stat.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
 
@@ -202,7 +250,7 @@ export default function Resources() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredResources.slice(0, 20).map((resource, index) => {
+                    {paginatedData.map((resource, index) => {
                       const cpuBadge = getUtilizationBadge(resource.cpuUtilization);
                       const memBadge = getUtilizationBadge(resource.memoryUtilization);
                       
@@ -278,13 +326,13 @@ export default function Resources() {
                   </TableBody>
                 </Table>
               </div>
-              {filteredResources.length > 20 && (
-                <div className="p-4 text-center border-t border-border">
-                  <Button variant="ghost" size="sm">
-                    Load more ({filteredResources.length - 20} remaining)
-                  </Button>
-                </div>
-              )}
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
             </CardContent>
           </Card>
         </motion.div>

@@ -1,11 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { getOrgUnits, generateKPIs } from '@/lib/mock-data';
-import { useMemo } from 'react';
-import { 
+import { useMemo, useState } from 'react';
+import {
   IconTarget,
   IconPlus,
   IconAlertTriangle,
@@ -17,16 +21,20 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Budgets() {
-  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
   const { toast } = useToast();
-  
-  const budgetData = useMemo(() => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [customBudgets, setCustomBudgets] = useState<{ id: string; name: string; budget: number; spent: number; percentage: number }[]>([]);
+  const [form, setForm] = useState({ name: '', budget: '', alertThreshold: '80' });
+
+  const baseBudgetData = useMemo(() => {
     const orgUnits = getOrgUnits(selectedProvider);
     if (selectedOrgUnitId === 'all') {
       return orgUnits.map(unit => {
-        const kpis = generateKPIs(unit.id, selectedProvider);
+        const kpis = generateKPIs(unit.id, selectedProvider, dateRange);
         return {
           id: unit.id,
           name: unit.name,
@@ -38,7 +46,7 @@ export default function Budgets() {
     }
     const unit = orgUnits.find(u => u.id === selectedOrgUnitId);
     if (!unit) return [];
-    const kpis = generateKPIs(selectedOrgUnitId, selectedProvider);
+    const kpis = generateKPIs(selectedOrgUnitId, selectedProvider, dateRange);
     return [{
       id: unit.id,
       name: unit.name,
@@ -46,12 +54,30 @@ export default function Budgets() {
       spent: kpis.totalSpend,
       percentage: kpis.budgetUsed,
     }];
-  }, [selectedOrgUnitId, selectedProvider]);
+  }, [selectedOrgUnitId, selectedProvider, dateRange]);
+
+  const budgetData = useMemo(() => [...baseBudgetData, ...customBudgets], [baseBudgetData, customBudgets]);
 
   const totalBudget = budgetData.reduce((sum, b) => sum + b.budget, 0);
   const totalSpent = budgetData.reduce((sum, b) => sum + b.spent, 0);
   const overBudget = budgetData.filter(b => b.percentage > 100).length;
   const atRisk = budgetData.filter(b => b.percentage > 80 && b.percentage <= 100).length;
+
+  const handleCreateBudget = () => {
+    if (!form.name.trim() || !form.budget) return;
+    const newBudget = {
+      id: `custom-${Date.now()}`,
+      name: form.name.trim(),
+      budget: Number(form.budget),
+      spent: 0,
+      percentage: 0,
+    };
+    const threshold = form.alertThreshold;
+    setCustomBudgets(prev => [...prev, newBudget]);
+    setForm({ name: '', budget: '', alertThreshold: '80' });
+    setDialogOpen(false);
+    toast({ title: "Budget Created", description: `"${newBudget.name}" budget of ${formatCurrency(newBudget.budget, currency)} has been created with ${threshold}% alert threshold.` });
+  };
 
   return (
     <ScrollArea className="h-full">
@@ -68,47 +94,53 @@ export default function Budgets() {
               Track and manage cloud spending budgets
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Create Budget", description: "Budget creation wizard will be available soon" })}>
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => setDialogOpen(true)}>
             <IconPlus className="h-4 w-4 mr-2" />
             Create Budget
           </Button>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
           {[
-            { label: 'Total Budget', value: formatCurrency(totalBudget, currency), icon: IconTarget, color: 'text-primary', isValue: true },
-            { label: 'Total Spent', value: formatCurrency(totalSpent, currency), icon: IconTrendingUp, color: 'text-blue-500', isValue: true },
-            { label: 'At Risk', value: atRisk, icon: IconAlertTriangle, color: 'text-amber-500' },
-            { label: 'Over Budget', value: overBudget, icon: IconAlertTriangle, color: 'text-destructive' },
+            { label: 'Total Budget', value: formatCurrency(totalBudget, currency), icon: IconTarget, color: 'text-primary', isValue: true, tooltip: 'Sum of all allocated budgets across every team, project, or environment.' },
+            { label: 'Total Spent', value: formatCurrency(totalSpent, currency), icon: IconTrendingUp, color: 'text-blue-500', isValue: true, tooltip: 'Actual cloud spend to date across all budgets in the current billing period.' },
+            { label: 'At Risk', value: atRisk, icon: IconAlertTriangle, color: 'text-amber-500', tooltip: 'Budgets that have consumed 70-100% of their allocation and may overshoot by month end.' },
+            { label: 'Over Budget', value: overBudget, icon: IconAlertTriangle, color: 'text-destructive', tooltip: 'Budgets that have already exceeded their allocated spending limit.' },
           ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                      <p className={cn(
-                        "font-bold font-mono",
-                        stat.isValue ? "text-xl" : "text-2xl"
-                      )}>{stat.value}</p>
-                    </div>
-                    <div className={cn(
-                      "p-2.5 rounded-xl",
-                      stat.color === 'text-destructive' ? 'bg-destructive/10' :
-                      stat.color === 'text-amber-500' ? 'bg-amber-500/10' :
-                      stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10'
-                    )}>
-                      <stat.icon className={cn("h-6 w-6", stat.color)} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <Tooltip key={stat.label} delayDuration={300}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                >
+                  <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                          <p className={cn(
+                            "font-bold font-mono",
+                            stat.isValue ? "text-xl" : "text-2xl"
+                          )}>{stat.value}</p>
+                        </div>
+                        <div className={cn(
+                          "p-2.5 rounded-xl",
+                          stat.color === 'text-destructive' ? 'bg-destructive/10' :
+                          stat.color === 'text-amber-500' ? 'bg-amber-500/10' :
+                          stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10'
+                        )}>
+                          <stat.icon className={cn("h-6 w-6", stat.color)} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                <p className="text-xs">{stat.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
 
@@ -187,6 +219,55 @@ export default function Budgets() {
           </Card>
         </motion.div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Budget</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="budget-name">Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="budget-name"
+                placeholder="Enter budget name"
+                value={form.name}
+                onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="budget-amount">Budget Amount <span className="text-destructive">*</span></Label>
+              <Input
+                id="budget-amount"
+                type="number"
+                placeholder="Enter budget amount"
+                value={form.budget}
+                onChange={(e) => setForm(prev => ({ ...prev, budget: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="budget-threshold">Alert Threshold</Label>
+              <Select value={form.alertThreshold} onValueChange={(value) => setForm(prev => ({ ...prev, alertThreshold: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select threshold" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="50">50%</SelectItem>
+                  <SelectItem value="80">80%</SelectItem>
+                  <SelectItem value="90">90%</SelectItem>
+                  <SelectItem value="100">100%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateBudget} disabled={!form.name.trim() || !form.budget}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScrollArea>
   );
 }

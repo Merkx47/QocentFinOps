@@ -16,9 +16,8 @@ import {
   IconWallet,
   IconAlertTriangle,
   IconChartLine,
-  IconPigMoney,
+  IconBell,
   IconTag,
-  IconReceipt,
   IconTrash,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
@@ -52,7 +51,7 @@ function useNavItems() {
 const intelligenceNavItems: NavItem[] = [
   { icon: IconAlertTriangle, label: 'Anomaly Detection', href: '/anomalies' },
   { icon: IconChartLine, label: 'Cost Forecast', href: '/forecasting' },
-  { icon: IconPigMoney, label: 'Savings Plans', href: '/savings-plans' },
+  { icon: IconBell, label: 'Notifications', href: '/notifications', badge: 3 },
 ];
 
 const secondaryNavItems: NavItem[] = [
@@ -63,7 +62,6 @@ const secondaryNavItems: NavItem[] = [
 
 const governanceNavItems: NavItem[] = [
   { icon: IconTag, label: 'Tag Compliance', href: '/tagging' },
-  { icon: IconReceipt, label: 'Unit Economics', href: '/unit-economics' },
   { icon: IconTrash, label: 'Waste Detection', href: '/waste' },
 ];
 
@@ -88,13 +86,13 @@ function NavLink({
           "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer relative group/nav",
           isActive
             ? "bg-primary text-primary-foreground shadow-sm"
-            : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/80",
+            : "text-muted-foreground hover:text-foreground hover:bg-muted/80",
           isCollapsed && "justify-center px-2"
         )}
       >
         <item.icon className={cn(
           "h-[18px] w-[18px] flex-shrink-0 transition-colors",
-          isActive ? "text-primary-foreground" : "text-slate-400 group-hover/nav:text-slate-600"
+          isActive ? "text-primary-foreground" : "text-muted-foreground group-hover/nav:text-foreground"
         )} />
         {!isCollapsed && (
           <>
@@ -143,7 +141,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-[calc(100vh-4rem)] border-r border-slate-200/80 bg-white flex flex-col transition-all duration-300",
+        "h-[calc(100vh-4rem)] border-r [border-right-color:var(--button-outline)] bg-background flex flex-col transition-all duration-300",
         sidebarCollapsed ? "w-16" : "w-60"
       )}
     >
@@ -159,11 +157,11 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className={cn("my-3 mx-3 border-t border-slate-100", sidebarCollapsed && "mx-2")} />
+        <div className={cn("my-3 mx-3 border-t border-border", sidebarCollapsed && "mx-2")} />
 
         <nav className="px-2.5 space-y-0.5">
           {!sidebarCollapsed && (
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-3 mb-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-3 mb-2">
               Intelligence
             </p>
           )}
@@ -177,11 +175,11 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className={cn("my-3 mx-3 border-t border-slate-100", sidebarCollapsed && "mx-2")} />
+        <div className={cn("my-3 mx-3 border-t border-border", sidebarCollapsed && "mx-2")} />
 
         <nav className="px-2.5 space-y-0.5">
           {!sidebarCollapsed && (
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-3 mb-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-3 mb-2">
               Financial
             </p>
           )}
@@ -195,11 +193,11 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className={cn("my-3 mx-3 border-t border-slate-100", sidebarCollapsed && "mx-2")} />
+        <div className={cn("my-3 mx-3 border-t border-border", sidebarCollapsed && "mx-2")} />
 
         <nav className="px-2.5 space-y-0.5">
           {!sidebarCollapsed && (
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-3 mb-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-3 mb-2">
               Governance
             </p>
           )}
@@ -214,7 +212,7 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="border-t border-slate-100 p-2.5 space-y-0.5">
+      <div className="border-t border-border p-2.5 space-y-0.5">
         {bottomNavItems.map((item) => (
           <NavLink
             key={item.href}
@@ -228,7 +226,7 @@ export function Sidebar() {
           variant="ghost"
           size="sm"
           className={cn(
-            "w-full justify-center mt-1 text-slate-400 hover:text-slate-600 rounded-xl h-9",
+            "w-full justify-center mt-1 text-muted-foreground hover:text-foreground rounded-xl h-9",
             !sidebarCollapsed && "justify-end"
           )}
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}

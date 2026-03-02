@@ -160,7 +160,7 @@ export function FinOpsAssistant() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-20 right-6 w-[400px] h-[520px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-[100] flex flex-col overflow-hidden"
+            className="fixed bottom-20 right-6 w-[400px] h-[520px] bg-card rounded-2xl shadow-2xl border border-border z-[100] flex flex-col overflow-hidden"
           >
             <div
               className="px-5 py-4 flex items-center justify-between shrink-0"
@@ -185,7 +185,7 @@ export function FinOpsAssistant() {
                     className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
                       msg.role === 'user'
                         ? 'bg-primary text-white rounded-br-md'
-                        : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                        : 'bg-muted text-foreground rounded-bl-md'
                     }`}
                   >
                     {msg.content}
@@ -199,7 +199,7 @@ export function FinOpsAssistant() {
                     <button
                       key={q}
                       onClick={() => handleChipClick(q)}
-                      className="text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                      className="text-xs px-3 py-1.5 rounded-full border border-border bg-card text-muted-foreground hover:bg-muted/50 hover:border-border transition-colors"
                     >
                       {q}
                     </button>
@@ -209,7 +209,7 @@ export function FinOpsAssistant() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-3 border-t border-slate-200 shrink-0">
+            <div className="p-3 border-t border-border shrink-0">
               <div className="flex items-center gap-2">
                 <input
                   ref={inputRef}
@@ -218,7 +218,7 @@ export function FinOpsAssistant() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about FinOps..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+                  className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
                 />
                 <button
                   onClick={handleSend}

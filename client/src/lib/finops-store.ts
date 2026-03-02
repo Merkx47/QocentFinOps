@@ -1,7 +1,17 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Currency, DateRange, Language } from '@shared/schema';
 import type { CloudProvider } from './provider-config';
 import { getProviderConfig } from './provider-config';
+
+export const DEFAULT_EXCHANGE_RATES: Record<Currency, number> = {
+  USD: 1.0,
+  GBP: 0.79,
+  EUR: 0.92,
+  JPY: 149.50,
+  NGN: 1550.00,
+  CNY: 7.24,
+};
 
 interface UserInfo {
   name: string;
@@ -30,11 +40,9 @@ interface FinOpsStore {
   dateRange: DateRange;
   setDateRange: (dateRange: DateRange) => void;
 
-  selectedServices: string[];
-  setSelectedServices: (services: string[]) => void;
-
-  selectedRegions: string[];
-  setSelectedRegions: (regions: string[]) => void;
+  exchangeRates: Record<Currency, number>;
+  setExchangeRates: (rates: Record<Currency, number>) => void;
+  resetExchangeRates: () => void;
 
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -44,20 +52,22 @@ const today = new Date();
 const thirtyDaysAgo = new Date(today);
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-export const useFinOpsStore = create<FinOpsStore>((set) => ({
+export const useFinOpsStore = create<FinOpsStore>()(
+  persist(
+    (set) => ({
   selectedProvider: 'huawei',
   setSelectedProvider: (selectedProvider) => {
-    set({ selectedProvider, selectedOrgUnitId: 'all', selectedServices: [], selectedRegions: [] });
+    set({ selectedProvider, selectedOrgUnitId: 'all' });
     applyProviderTheme(selectedProvider);
   },
 
   user: null,
   isAuthenticated: false,
   login: (provider, user) => {
-    set({ selectedProvider: provider, user, isAuthenticated: true, selectedOrgUnitId: 'all', selectedServices: [], selectedRegions: [] });
+    set({ selectedProvider: provider, user, isAuthenticated: true, selectedOrgUnitId: 'all' });
     applyProviderTheme(provider);
   },
-  logout: () => set({ user: null, isAuthenticated: false, selectedProvider: 'huawei', selectedOrgUnitId: 'all', selectedServices: [], selectedRegions: [] }),
+  logout: () => set({ user: null, isAuthenticated: false, selectedProvider: 'huawei', selectedOrgUnitId: 'all' }),
 
   currency: 'USD',
   setCurrency: (currency) => set({ currency }),
@@ -78,15 +88,31 @@ export const useFinOpsStore = create<FinOpsStore>((set) => ({
   },
   setDateRange: (dateRange) => set({ dateRange }),
 
-  selectedServices: [],
-  setSelectedServices: (selectedServices) => set({ selectedServices }),
-
-  selectedRegions: [],
-  setSelectedRegions: (selectedRegions) => set({ selectedRegions }),
+  exchangeRates: { ...DEFAULT_EXCHANGE_RATES },
+  setExchangeRates: (exchangeRates) => set({ exchangeRates }),
+  resetExchangeRates: () => set({ exchangeRates: { ...DEFAULT_EXCHANGE_RATES } }),
 
   sidebarCollapsed: false,
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
-}));
+    }),
+    {
+      name: 'finops-store',
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        selectedProvider: state.selectedProvider,
+        language: state.language,
+        currency: state.currency,
+        exchangeRates: state.exchangeRates,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.selectedProvider) {
+          applyProviderTheme(state.selectedProvider);
+        }
+      },
+    }
+  )
+);
 
 const languageToGoogleCode: Record<string, string> = {
   en: 'en',
@@ -112,6 +138,20 @@ function waitForGoogleTranslate(maxWait = 3000): Promise<HTMLSelectElement | nul
   });
 }
 
+function fadeTranslate(callback: () => void) {
+  const root = document.getElementById('root');
+  if (!root) { callback(); return; }
+  root.style.transition = 'opacity 0.15s ease';
+  root.style.opacity = '0.4';
+  setTimeout(() => {
+    callback();
+    setTimeout(() => {
+      root.style.opacity = '1';
+      setTimeout(() => { root.style.transition = ''; }, 200);
+    }, 150);
+  }, 150);
+}
+
 function triggerGoogleTranslate(lang: Language) {
   const code = languageToGoogleCode[lang] || 'en';
 
@@ -120,8 +160,10 @@ function triggerGoogleTranslate(lang: Language) {
     document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname;
     const selectEl = document.querySelector('.goog-te-combo') as HTMLSelectElement;
     if (selectEl) {
-      selectEl.value = 'en';
-      selectEl.dispatchEvent(new Event('change'));
+      fadeTranslate(() => {
+        selectEl.value = 'en';
+        selectEl.dispatchEvent(new Event('change'));
+      });
     } else if (!reloadAttempted) {
       reloadAttempted = true;
       window.location.reload();
@@ -134,8 +176,10 @@ function triggerGoogleTranslate(lang: Language) {
 
   waitForGoogleTranslate().then((selectEl) => {
     if (selectEl) {
-      selectEl.value = code;
-      selectEl.dispatchEvent(new Event('change'));
+      fadeTranslate(() => {
+        selectEl.value = code;
+        selectEl.dispatchEvent(new Event('change'));
+      });
       reloadAttempted = false;
     } else if (!reloadAttempted) {
       reloadAttempted = true;
@@ -152,15 +196,8 @@ export function applyProviderTheme(provider: CloudProvider) {
 }
 
 export function convertCurrency(amount: number, toCurrency: Currency): number {
-  const rates: Record<Currency, number> = {
-    USD: 1,
-    GBP: 0.79,
-    EUR: 0.92,
-    JPY: 149.50,
-    NGN: 1550.00,
-    CNY: 7.24,
-  };
-  return amount * rates[toCurrency];
+  const { exchangeRates } = useFinOpsStore.getState();
+  return amount * exchangeRates[toCurrency];
 }
 
 const currencySymbols: Record<Currency, string> = {

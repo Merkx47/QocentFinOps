@@ -23,13 +23,13 @@ const COLORS = [
 ];
 
 export default function Allocation() {
-  const { currency, selectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { currency, selectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
   
   const config = getProviderConfig(selectedProvider);
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
 
-  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider), [selectedOrgUnitId, selectedProvider]);
-  const orgUnitSummaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
+  const serviceBreakdown = useMemo(() => generateServiceBreakdown(selectedOrgUnitId, selectedProvider, dateRange), [selectedOrgUnitId, selectedProvider, dateRange]);
+  const orgUnitSummaries = useMemo(() => generateOrgUnitSummaries(selectedProvider, dateRange), [selectedProvider, dateRange]);
 
   const serviceTreemapData = serviceBreakdown.slice(0, 12).map((s, i) => ({
     name: s.service,
@@ -111,9 +111,9 @@ export default function Allocation() {
                               x={x + width / 2}
                               y={y + height / 2}
                               textAnchor="middle"
-                              fill="white"
-                              fontSize={12}
-                              fontWeight={600}
+                              fill="rgba(255,255,255,0.9)"
+                              fontSize={11}
+                              fontWeight={400}
                             >
                               {name}
                             </text>
@@ -185,9 +185,9 @@ export default function Allocation() {
                                 x={x + width / 2}
                                 y={y + height / 2}
                                 textAnchor="middle"
-                                fill="white"
+                                fill="rgba(255,255,255,0.9)"
                                 fontSize={11}
-                                fontWeight={600}
+                                fontWeight={400}
                               >
                                 {displayName}
                               </text>

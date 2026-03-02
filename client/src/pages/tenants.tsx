@@ -3,11 +3,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
 import { generateOrgUnitSummaries, getOrgUnits } from '@/lib/mock-data';
-import { getServiceInfo, getProviderConfig } from '@/lib/provider-config';
+import { getServiceInfo, getProviderConfig, OrgUnit } from '@/lib/provider-config';
 import { useMemo, useState } from 'react';
-import { 
+import {
   IconUsersGroup,
   IconSearch,
   IconBuildingSkyscraper,
@@ -23,15 +26,55 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Tenants() {
-  const { currency, setSelectedOrgUnitId, selectedProvider } = useFinOpsStore();
+  const { currency, setSelectedOrgUnitId, selectedProvider, dateRange } = useFinOpsStore();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [customUnits, setCustomUnits] = useState<OrgUnit[]>([]);
+  const [form, setForm] = useState({ name: '', description: '', environment: 'production', budget: '' });
+
   const config = getProviderConfig(selectedProvider);
   const serviceInfo = useMemo(() => getServiceInfo(selectedProvider), [selectedProvider]);
   const orgUnits = useMemo(() => getOrgUnits(selectedProvider), [selectedProvider]);
-  const summaries = useMemo(() => generateOrgUnitSummaries(selectedProvider), [selectedProvider]);
+  const baseSummaries = useMemo(() => generateOrgUnitSummaries(selectedProvider, dateRange), [selectedProvider, dateRange]);
+
+  const summaries = useMemo(() => {
+    const customSummaries = customUnits.map(unit => ({
+      orgUnit: unit,
+      totalSpend: 0,
+      budgetUsage: 0,
+      efficiencyScore: 100,
+      topService: config.services[0],
+      recommendationCount: 0,
+    }));
+    return [...baseSummaries, ...customSummaries];
+  }, [baseSummaries, customUnits, config.services]);
+
+  const handleAddUnit = () => {
+    if (!form.name.trim()) return;
+    const newUnit: OrgUnit = {
+      id: `custom-${Date.now()}`,
+      name: form.name.trim(),
+      description: form.description.trim() || 'Custom account',
+      environment: form.environment,
+      primaryRegion: config.regions[0],
+      contactName: '',
+      contactEmail: '',
+      budget: Number(form.budget) || 0,
+      efficiencyScore: 100,
+      status: 'active',
+    };
+    setCustomUnits(prev => [...prev, newUnit]);
+    setForm({ name: '', description: '', environment: 'production', budget: '' });
+    setDialogOpen(false);
+    toast({ title: `${config.hierarchy.orgUnitLabel} Created`, description: `"${newUnit.name}" has been added successfully.` });
+  };
   
   const filteredSummaries = useMemo(() => {
     return summaries.filter(s => 
@@ -65,47 +108,50 @@ export default function Tenants() {
               {config.hierarchy.managementPageSubtitle}
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => setDialogOpen(true)}>
             <IconBuildingSkyscraper className="h-4 w-4 mr-2" />
             {config.hierarchy.addButtonLabel}
           </Button>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
           {[
-            { label: `Total ${config.hierarchy.orgUnitLabelPlural}`, value: orgUnits.length, icon: IconUsersGroup, color: 'text-primary' },
-            { label: 'Combined Spend', value: formatCurrency(stats.totalSpend, currency), icon: IconChartBar, color: 'text-emerald-500', isValue: true },
-            { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: IconBolt, color: 'text-amber-500' },
-            { label: 'Pending Actions', value: stats.totalRecommendations, icon: IconBulb, color: 'text-blue-500' },
+            { label: `Total ${config.hierarchy.orgUnitLabelPlural}`, value: orgUnits.length, icon: IconUsersGroup, color: 'text-primary', tooltip: `Total number of ${config.hierarchy.orgUnitLabelPlural.toLowerCase()} configured for cost tracking and management.` },
+            { label: 'Combined Spend', value: formatCompactCurrency(stats.totalSpend, currency), icon: IconChartBar, color: 'text-emerald-500', tooltip: `Aggregate monthly cloud spend across all ${config.hierarchy.orgUnitLabelPlural.toLowerCase()}.` },
+            { label: 'Avg Efficiency', value: `${stats.avgEfficiency.toFixed(0)}%`, icon: IconBolt, color: 'text-amber-500', tooltip: 'Mean resource utilization score across all accounts. Higher is better.' },
+            { label: 'Pending Actions', value: stats.totalRecommendations, icon: IconBulb, color: 'text-blue-500', tooltip: 'Total unresolved optimization recommendations across all accounts awaiting review.' },
           ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-            >
-              <Card className="bg-card/50 backdrop-blur-sm border-card-border">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-                      <p className={cn(
-                        "font-bold font-mono",
-                        stat.isValue ? "text-xl" : "text-2xl"
-                      )}>{stat.value}</p>
-                    </div>
-                    <div className={cn(
-                      "p-2.5 rounded-xl",
-                      stat.color === 'text-emerald-500' ? 'bg-emerald-500/10' : 
-                      stat.color === 'text-amber-500' ? 'bg-amber-500/10' : 
-                      stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10'
-                    )}>
-                      <stat.icon className={cn("h-6 w-6", stat.color)} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <Tooltip key={stat.label} delayDuration={300}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.1 }}
+                >
+                  <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                          <p className="text-2xl font-bold font-mono">{stat.value}</p>
+                        </div>
+                        <div className={cn(
+                          "p-2.5 rounded-xl",
+                          stat.color === 'text-emerald-500' ? 'bg-emerald-500/10' :
+                          stat.color === 'text-amber-500' ? 'bg-amber-500/10' :
+                          stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10'
+                        )}>
+                          <stat.icon className={cn("h-6 w-6", stat.color)} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                <p className="text-xs">{stat.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
 
@@ -145,7 +191,10 @@ export default function Tenants() {
                   >
                     <div 
                       className="p-4 rounded-xl border border-border bg-background/50 hover-elevate cursor-pointer"
-                      onClick={() => setSelectedOrgUnitId(summary.orgUnit.id)}
+                      onClick={() => {
+                        setSelectedOrgUnitId(summary.orgUnit.id);
+                        navigate('/dashboard');
+                      }}
                       data-testid={`tenant-card-${summary.orgUnit.id}`}
                     >
                       <div className="flex items-start justify-between gap-4 mb-4">
@@ -252,6 +301,63 @@ export default function Tenants() {
           </Card>
         </motion.div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add {config.hierarchy.orgUnitLabel}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="unit-name">Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="unit-name"
+                placeholder={`Enter ${config.hierarchy.orgUnitLabel.toLowerCase()} name`}
+                value={form.name}
+                onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit-description">Description</Label>
+              <Input
+                id="unit-description"
+                placeholder="Enter description"
+                value={form.description}
+                onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit-environment">Environment</Label>
+              <Select value={form.environment} onValueChange={(value) => setForm(prev => ({ ...prev, environment: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select environment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="production">Production</SelectItem>
+                  <SelectItem value="staging">Staging</SelectItem>
+                  <SelectItem value="development">Development</SelectItem>
+                  <SelectItem value="testing">Testing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit-budget">Monthly Budget</Label>
+              <Input
+                id="unit-budget"
+                type="number"
+                placeholder="Enter monthly budget"
+                value={form.budget}
+                onChange={(e) => setForm(prev => ({ ...prev, budget: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddUnit} disabled={!form.name.trim()}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScrollArea>
   );
 }
