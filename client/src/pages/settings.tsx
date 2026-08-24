@@ -41,7 +41,7 @@ export default function Settings() {
   const nameParts = (user?.name || 'Admin User').split(' ');
   const [firstName, setFirstName] = useState(nameParts[0] || '');
   const [lastName, setLastName] = useState(nameParts.slice(1).join(' ') || '');
-  const [email, setEmail] = useState(user?.email || 'admin@company.com');
+  const [email, setEmail] = useState(user?.email || 'admin@qucoon.com');
 
   // Provider connection state
   const [connecting, setConnecting] = useState(false);
@@ -110,7 +110,7 @@ export default function Settings() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="admin@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Input id="email" type="email" placeholder="admin@qucoon.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
                   <Button onClick={() => {
                     const fullName = `${firstName} ${lastName}`.trim();

@@ -32,14 +32,14 @@ export default function Login() {
   const providerId = (params.get('provider') || 'huawei') as CloudProvider;
   const config = getProviderConfig(providerId);
   const { login } = useFinOpsStore();
-  const [email, setEmail] = useState('admin@company.com');
+  const [email, setEmail] = useState('admin@qucoon.com');
   const [password, setPassword] = useState('password');
   const [ssoLoading, setSsoLoading] = useState(false);
 
   const handleSSOLogin = () => {
     setSsoLoading(true);
     setTimeout(() => {
-      login(providerId, { name: 'Admin User', email: 'admin@company.com', role: 'Administrator' });
+      login(providerId, { name: 'Admin User', email: 'admin@qucoon.com', role: 'Administrator' });
       navigate('/dashboard');
     }, 1800);
   };
@@ -169,7 +169,7 @@ export default function Login() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-11 bg-background border-input text-foreground rounded-xl focus:ring-2 focus:ring-offset-0 transition-shadow"
                     style={{ ['--tw-ring-color' as string]: config.colors.primary + '30' }}
-                    placeholder="admin@company.com"
+                    placeholder="admin@qucoon.com"
                   />
                 </div>
               </div>

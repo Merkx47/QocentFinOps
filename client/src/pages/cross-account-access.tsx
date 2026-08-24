@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,35 +16,51 @@ import { useToast } from '@/hooks/use-toast';
 import {
   buildTrustPolicy,
   getCustomerName,
+  getRemediatedFindings,
   getSaasTool,
   getSaasTools,
-  getToolConnections,
-  roleArn,
+  runCrossAccountScan,
   type SaasTool,
-  type ToolConnection,
-} from '@/lib/saas-tooling';
+  type ScannedRole,
+} from '@/lib/cross-account-scanner';
+import {
+  evaluateTrustPolicy,
+  parseTrustPolicy,
+  type PolicyVerdict,
+} from '@shared/trust-policy';
 import {
   IconShieldLock,
   IconSearch,
   IconDownload,
   IconCopy,
   IconPlugConnected,
-  IconBuildingSkyscraper,
   IconKey,
   IconCircleCheck,
+  IconAlertTriangle,
   IconClockExclamation,
   IconExternalLink,
+  IconFileText,
+  IconHistory,
+  IconTestPipe,
 } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 
 interface Row {
-  connection: ToolConnection;
+  role: ScannedRole;
   tool: SaasTool;
+  verdict: PolicyVerdict;
 }
 
-function PolicyBlock({ policy }: { policy: string }) {
+const VERIFICATION_WINDOW_DAYS = 90;
+
+function daysSince(isoDate: string): number {
+  const then = new Date(isoDate).getTime();
+  return Math.floor((Date.now() - then) / (1000 * 60 * 60 * 24));
+}
+
+function PolicyBlock({ policy, testId }: { policy: string; testId?: string }) {
   const { toast } = useToast();
 
   const copy = () => {
@@ -58,7 +75,7 @@ function PolicyBlock({ policy }: { policy: string }) {
         size="sm"
         className="absolute right-3 top-3 h-7 gap-1.5 text-xs"
         onClick={copy}
-        data-testid="button-copy-policy"
+        data-testid={testId ?? 'button-copy-policy'}
       >
         <IconCopy className="h-3.5 w-3.5" />
         Copy
@@ -70,8 +87,137 @@ function PolicyBlock({ policy }: { policy: string }) {
   );
 }
 
+function CheckList({ verdict }: { verdict: PolicyVerdict }) {
+  return (
+    <ul className="space-y-2">
+      {verdict.checks.map(check => (
+        <li key={check.id} className="flex items-start gap-2.5">
+          {check.passed ? (
+            <IconCircleCheck className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+          ) : check.severity === 'required' ? (
+            <IconAlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+          ) : (
+            <IconAlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground">{check.label}</span>
+              {check.severity === 'hardening' && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1.5">Advisory</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">{check.detail}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const UNGATED_EXAMPLE = JSON.stringify(
+  {
+    Version: '2012-10-17',
+    Statement: [
+      {
+        Sid: 'VendorAccess',
+        Effect: 'Allow',
+        Principal: { AWS: 'arn:aws:iam::417248063411:root' },
+        Action: 'sts:AssumeRole',
+      },
+    ],
+  },
+  null,
+  2
+);
+
+function PolicyValidator() {
+  const [draft, setDraft] = useState('');
+  const [result, setResult] = useState<{ verdict?: PolicyVerdict; error?: string } | null>(null);
+
+  const check = () => {
+    try {
+      setResult({ verdict: evaluateTrustPolicy(parseTrustPolicy(draft)) });
+    } catch (error) {
+      setResult({ error: error instanceof Error ? error.message : 'That policy could not be read.' });
+    }
+  };
+
+  return (
+    <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <IconTestPipe className="h-5 w-5 text-primary" />
+          Check a trust policy
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground max-w-3xl">
+          Paste a policy to run it through the same rules that grade the roles above — useful before a new
+          tool is onboarded, or to confirm what the rules reject.
+        </p>
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder='{ "Version": "2012-10-17", "Statement": [ ... ] }'
+          className="font-mono text-[12px] min-h-[180px]"
+          data-testid="textarea-policy-draft"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={check} disabled={!draft.trim()} data-testid="button-check-policy">
+            Check policy
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => { setDraft(UNGATED_EXAMPLE); setResult(null); }}
+            data-testid="button-load-ungated"
+          >
+            Load one with no external ID
+          </Button>
+          {draft && (
+            <Button variant="ghost" onClick={() => { setDraft(''); setResult(null); }}>
+              Clear
+            </Button>
+          )}
+        </div>
+
+        {result?.error && (
+          <div className="rounded-xl border border-red-500/40 bg-red-500/5 p-4">
+            <p className="text-sm text-red-500">{result.error}</p>
+          </div>
+        )}
+
+        {result?.verdict && (
+          <div
+            className={cn(
+              'rounded-xl border p-4 space-y-3',
+              result.verdict.compliant
+                ? 'border-emerald-500/40 bg-emerald-500/5'
+                : 'border-red-500/40 bg-red-500/5'
+            )}
+            data-testid="validator-result"
+          >
+            <div className="flex items-center gap-2">
+              {result.verdict.compliant ? (
+                <IconCircleCheck className="h-5 w-5 text-emerald-500" />
+              ) : (
+                <IconAlertTriangle className="h-5 w-5 text-red-500" />
+              )}
+              <span className="text-sm font-semibold">
+                {result.verdict.compliant
+                  ? 'Cross-account access is gated on an external ID.'
+                  : 'This policy would not be accepted.'}
+              </span>
+            </div>
+            <CheckList verdict={result.verdict} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CrossAccountAccess() {
-  const { selectedProvider, selectedCustomerId } = useFinOpsStore();
+  const { selectedProvider, selectedCustomerId, user } = useFinOpsStore();
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,15 +225,23 @@ export default function CrossAccountAccess() {
   const [showExternalIds, setShowExternalIds] = useState(false);
   const [openRow, setOpenRow] = useState<Row | null>(null);
 
+  const scan = useMemo(
+    () => runCrossAccountScan(selectedProvider, selectedCustomerId),
+    [selectedProvider, selectedCustomerId]
+  );
+
   const rows = useMemo<Row[]>(() => {
-    return getToolConnections(selectedProvider, selectedCustomerId)
-      .map(connection => {
-        const tool = getSaasTool(connection.toolId);
-        return tool ? { connection, tool } : null;
+    return scan.roles
+      .map(role => {
+        const tool = getSaasTool(role.toolId);
+        if (!tool) return null;
+        return { role, tool, verdict: evaluateTrustPolicy(role.trustPolicy) };
       })
       .filter((r): r is Row => r !== null)
       .sort((a, b) => a.tool.name.localeCompare(b.tool.name));
-  }, [selectedProvider, selectedCustomerId]);
+  }, [scan]);
+
+  const findings = useMemo(() => getRemediatedFindings(selectedCustomerId), [selectedCustomerId]);
 
   const categories = useMemo(
     () => Array.from(new Set(getSaasTools().map(t => t.category))).sort(),
@@ -96,64 +250,37 @@ export default function CrossAccountAccess() {
 
   const filtered = useMemo(() => {
     const query = searchQuery.toLowerCase();
-    return rows.filter(({ tool, connection }) => {
+    return rows.filter(({ tool, role }) => {
       const matchesCategory = categoryFilter === 'all' || tool.category === categoryFilter;
       const matchesQuery =
         !query ||
         tool.name.toLowerCase().includes(query) ||
         tool.vendor.toLowerCase().includes(query) ||
-        tool.roleName.toLowerCase().includes(query) ||
-        getCustomerName(connection.customerId).toLowerCase().includes(query);
+        role.roleName.toLowerCase().includes(query) ||
+        getCustomerName(role.customerId).toLowerCase().includes(query);
       return matchesCategory && matchesQuery;
     });
   }, [rows, searchQuery, categoryFilter]);
 
   const stats = useMemo(() => {
-    const distinctTools = new Set(rows.map(r => r.tool.id)).size;
-    const accounts = rows.reduce((sum, r) => sum + r.connection.accountsCovered, 0);
-    const reviewDue = rows.filter(r => r.connection.status === 'review-due').length;
-    return { distinctTools, accounts, reviewDue, connections: rows.length };
+    const gated = rows.filter(r => r.verdict.compliant).length;
+    const advisories = rows.filter(r =>
+      r.verdict.checks.some(c => c.severity === 'hardening' && !c.passed)
+    ).length;
+    const staleVerification = rows.filter(
+      r => daysSince(r.role.lastVerified) > VERIFICATION_WINDOW_DAYS
+    ).length;
+    return {
+      tools: new Set(rows.map(r => r.tool.id)).size,
+      connections: rows.length,
+      gated,
+      ungated: rows.length - gated,
+      advisories,
+      staleVerification,
+    };
   }, [rows]);
 
-  const exportInventory = () => {
-    downloadCsv(
-      `cross-account-access-${selectedCustomerId}.csv`,
-      [
-        'Tool',
-        'Vendor',
-        'Operated by',
-        'Category',
-        'Customer',
-        'Role ARN',
-        'Vendor AWS account',
-        'External ID required',
-        'External ID',
-        'Access',
-        'Accounts covered',
-        'Last verified',
-        'Verified by',
-      ],
-      filtered.map(({ tool, connection }) => [
-        tool.name,
-        tool.vendor,
-        tool.partnerOperated ? 'Qocent' : 'Third party',
-        tool.category,
-        getCustomerName(connection.customerId),
-        roleArn(tool, connection),
-        tool.vendorAccountId,
-        'Yes',
-        connection.externalId,
-        tool.accessType,
-        connection.accountsCovered,
-        connection.lastVerified,
-        connection.verifiedBy,
-      ])
-    );
-    toast({
-      title: 'Inventory exported',
-      description: `${filtered.length} connections written to CSV.`,
-    });
-  };
+  const externalIdOf = (row: Row) => row.verdict.externalIds[0] ?? '—';
 
   const maskExternalId = (externalId: string) => {
     if (showExternalIds) return externalId;
@@ -164,36 +291,152 @@ export default function CrossAccountAccess() {
   const scopeLabel =
     selectedCustomerId === 'all' ? 'all customers' : getCustomerName(selectedCustomerId);
 
+  const exportCsv = () => {
+    downloadCsv(
+      `cross-account-access-${selectedCustomerId}.csv`,
+      [
+        'Tool', 'Vendor', 'Operated by', 'Category', 'Customer', 'Role ARN', 'Role ID',
+        'Trusted principal', 'External ID enforced', 'External ID', 'Access',
+        'Accounts covered', 'Role created', 'Role last used', 'Last verified', 'Verified by',
+      ],
+      filtered.map(({ tool, role, verdict }) => [
+        tool.name,
+        tool.vendor,
+        tool.partnerOperated ? 'Qucoon' : 'Third party',
+        tool.category,
+        getCustomerName(role.customerId),
+        role.roleArn,
+        role.roleId,
+        verdict.trustedPrincipals.join(' '),
+        verdict.compliant ? 'Yes' : 'No',
+        externalIdOf({ tool, role, verdict }),
+        tool.accessType,
+        role.accountsCovered,
+        role.createdDate,
+        role.roleLastUsed,
+        role.lastVerified,
+        role.verifiedBy,
+      ])
+    );
+    toast({ title: 'Inventory exported', description: `${filtered.length} roles written to CSV.` });
+  };
+
+  const exportEvidencePack = () => {
+    const generatedAt = new Date().toISOString();
+    const attestedBy = user ? `${user.name} (${user.role}), ${user.email}` : 'Cloud Platform Team';
+    const uniqueTools = Array.from(new Map(filtered.map(r => [r.tool.id, r])).values());
+    const checkLabels = rows[0]?.verdict.checks ?? [];
+
+    const lines: string[] = [
+      '# Cross-account access to customer AWS accounts',
+      '',
+      `Generated: ${generatedAt}`,
+      `Prepared by: ${attestedBy}`,
+      `Scope: ${scopeLabel}`,
+      `Accounts read: ${scan.accountsScanned.join(', ') || 'none'}`,
+      `Inventory reference: ${scan.scanId}`,
+      '',
+      '## Position',
+      '',
+      `${stats.gated} of ${stats.connections} role connections gate sts:AssumeRole on an external ID.`,
+      'No third-party or partner-operated tool holds an IAM user or long-lived access key in a customer account.',
+      '',
+      '## Rules applied to every trust policy',
+      '',
+      ...checkLabels.map(c => `- **${c.label}** (${c.severity === 'required' ? 'required' : 'advisory'})`),
+      '',
+      '## Tools with access to customer AWS accounts',
+      '',
+      '| Tool | Operated by | Customer | IAM role | Trusted principal | External ID enforced | Access | Accounts |',
+      '| --- | --- | --- | --- | --- | --- | --- | --- |',
+      ...filtered.map(({ tool, role, verdict }) =>
+        `| ${tool.name} | ${tool.partnerOperated ? 'Qucoon' : tool.vendor} | ${getCustomerName(role.customerId)} | \`${role.roleArn}\` | \`${verdict.trustedPrincipals.join(', ')}\` | ${verdict.compliant ? 'Yes' : 'No'} | ${tool.accessType} | ${role.accountsCovered} |`
+      ),
+      '',
+      '## Example trust policies',
+      '',
+    ];
+
+    for (const { tool, role, verdict } of uniqueTools) {
+      lines.push(
+        `### ${tool.name} — ${getCustomerName(role.customerId)}`,
+        '',
+        `Role: \`${role.roleArn}\``,
+        `External ID enforced: ${verdict.compliant ? 'yes' : 'no'}`,
+        '',
+        '```json',
+        JSON.stringify(role.trustPolicy, null, 2),
+        '```',
+        ''
+      );
+    }
+
+    if (findings.length > 0) {
+      lines.push('## Findings raised and closed', '');
+      for (const finding of findings) {
+        const tool = getSaasTool(finding.toolId);
+        lines.push(
+          `- **${finding.raisedOn} → ${finding.closedOn}** · ${tool?.name ?? finding.toolId} · ${getCustomerName(finding.customerId)}`,
+          `  - Finding: ${finding.summary}`,
+          `  - Closed by: ${finding.action}`
+        );
+      }
+      lines.push('');
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cross-account-access-evidence-${selectedCustomerId}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Evidence pack ready',
+      description: `${uniqueTools.length} trust policies and ${filtered.length} roles, attested to ${user?.name ?? 'the platform team'}.`,
+    });
+  };
+
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 max-w-[1920px] mx-auto" data-testid="cross-account-access-page">
+      <div className="p-6 max-w-[1920px] mx-auto space-y-6" data-testid="cross-account-access-page">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4"
         >
           <div>
             <h1 className="text-2xl font-bold text-foreground">Cross-Account Access</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-              Every tool that reaches into customer AWS accounts — ours and our vendors' — assumes an
-              IAM role guarded by an external ID. Nothing here uses long-lived access keys. Showing {scopeLabel}.
+              Every tool that reaches into customer AWS accounts — ours and our vendors' — assumes an IAM
+              role. Each role's trust policy is read back and graded on whether it requires an external ID.
+              Showing {scopeLabel}.
             </p>
           </div>
-          <Button variant="outline" onClick={exportInventory} data-testid="button-export-inventory">
-            <IconDownload className="h-4 w-4 mr-2" />
-            Export inventory
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={exportCsv} data-testid="button-export-inventory">
+              <IconDownload className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button onClick={exportEvidencePack} data-testid="button-export-evidence">
+              <IconFileText className="h-4 w-4 mr-2" />
+              Evidence pack
+            </Button>
+          </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 [&>*]:min-w-0">
           {[
             {
               label: 'Tools with access',
-              value: stats.distinctTools,
+              value: stats.tools,
               icon: IconPlugConnected,
               color: 'text-primary',
-              tooltip: 'Distinct SaaS and platform tools holding a role in customer accounts.',
+              tooltip: 'Distinct vendor and platform tools holding a role in customer accounts.',
             },
             {
               label: 'Role connections',
@@ -203,18 +446,18 @@ export default function CrossAccountAccess() {
               tooltip: 'One connection per tool per customer organisation.',
             },
             {
-              label: 'External ID in place',
-              value: `${stats.connections}/${stats.connections}`,
+              label: 'External ID enforced',
+              value: `${stats.gated}/${stats.connections}`,
               icon: IconKey,
-              color: 'text-emerald-500',
-              tooltip: 'Connections whose trust policy conditions sts:AssumeRole on a unique external ID.',
+              color: stats.ungated > 0 ? 'text-red-500' : 'text-emerald-500',
+              tooltip: 'Roles whose trust policy conditions sts:AssumeRole on an exact external ID, read from the policy itself.',
             },
             {
-              label: 'Verification due',
-              value: stats.reviewDue,
+              label: 'Verification overdue',
+              value: stats.staleVerification,
               icon: IconClockExclamation,
               color: 'text-amber-500',
-              tooltip: 'Connections last checked more than 90 days ago.',
+              tooltip: `Roles last checked by a named reviewer more than ${VERIFICATION_WINDOW_DAYS} days ago.`,
             },
           ].map((stat, i) => (
             <Tooltip key={stat.label} delayDuration={300}>
@@ -235,6 +478,7 @@ export default function CrossAccountAccess() {
                           "p-2.5 rounded-xl",
                           stat.color === 'text-emerald-500' ? 'bg-emerald-500/10' :
                           stat.color === 'text-amber-500' ? 'bg-amber-500/10' :
+                          stat.color === 'text-red-500' ? 'bg-red-500/10' :
                           stat.color === 'text-blue-500' ? 'bg-blue-500/10' : 'bg-primary/10'
                         )}>
                           <stat.icon className={cn("h-6 w-6", stat.color)} />
@@ -244,7 +488,7 @@ export default function CrossAccountAccess() {
                   </Card>
                 </motion.div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+              <TooltipContent side="bottom" className="max-w-[280px] text-center">
                 <p className="text-xs">{stat.tooltip}</p>
               </TooltipContent>
             </Tooltip>
@@ -256,7 +500,7 @@ export default function CrossAccountAccess() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Card className="bg-card/50 backdrop-blur-sm border-card-border mb-6">
+          <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader className="pb-4">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -312,41 +556,40 @@ export default function CrossAccountAccess() {
                       <TableHead className="text-xs font-semibold uppercase">External ID</TableHead>
                       <TableHead className="text-xs font-semibold uppercase text-right">Accounts</TableHead>
                       <TableHead className="text-xs font-semibold uppercase">Access</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase">Last verified</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase">Trust policy</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtered.map(row => {
-                      const { tool, connection } = row;
+                      const { tool, role, verdict } = row;
+                      const advisory = verdict.checks.some(c => c.severity === 'hardening' && !c.passed);
                       return (
                         <TableRow
-                          key={connection.id}
+                          key={role.connectionId}
                           className="cursor-pointer"
                           onClick={() => setOpenRow(row)}
-                          data-testid={`row-connection-${connection.id}`}
+                          data-testid={`row-connection-${role.connectionId}`}
                         >
                           <TableCell>
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-foreground truncate">{tool.name}</span>
-                                  {tool.partnerOperated && (
-                                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Ours</Badge>
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-muted-foreground truncate">{tool.category}</p>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-foreground truncate">{tool.name}</span>
+                                {tool.partnerOperated && (
+                                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Ours</Badge>
+                                )}
                               </div>
+                              <p className="text-[11px] text-muted-foreground truncate">{tool.category}</p>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{getCustomerName(connection.customerId)}</TableCell>
-                          <TableCell className="font-mono text-[12px]">{tool.roleName}</TableCell>
-                          <TableCell className="font-mono text-[12px] text-muted-foreground">
-                            {tool.vendorAccountId}
+                          <TableCell className="text-sm">{getCustomerName(role.customerId)}</TableCell>
+                          <TableCell className="font-mono text-[12px]">{role.roleName}</TableCell>
+                          <TableCell className="font-mono text-[11px] text-muted-foreground max-w-[190px] truncate">
+                            {verdict.trustedPrincipals[0] ?? '—'}
                           </TableCell>
                           <TableCell className="font-mono text-[11px] text-muted-foreground max-w-[240px] truncate">
-                            {maskExternalId(connection.externalId)}
+                            {maskExternalId(externalIdOf(row))}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-sm">{connection.accountsCovered}</TableCell>
+                          <TableCell className="text-right font-mono text-sm">{role.accountsCovered}</TableCell>
                           <TableCell>
                             <Badge
                               variant={tool.accessType === 'Read-only' ? 'secondary' : 'outline'}
@@ -357,12 +600,16 @@ export default function CrossAccountAccess() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1.5">
-                              {connection.status === 'verified' ? (
-                                <IconCircleCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                              {verdict.compliant ? (
+                                <IconCircleCheck className={cn('h-4 w-4 flex-shrink-0', advisory ? 'text-amber-500' : 'text-emerald-500')} />
                               ) : (
-                                <IconClockExclamation className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                                <IconAlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
                               )}
-                              <span className="text-sm font-mono">{connection.lastVerified}</span>
+                              <span className="text-sm">
+                                {verdict.compliant
+                                  ? advisory ? 'External ID, with notes' : 'External ID enforced'
+                                  : 'Not gated'}
+                              </span>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -379,7 +626,7 @@ export default function CrossAccountAccess() {
                 </Table>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Select a row to see the trust policy deployed in the customer account.
+                Select a row for the trust policy read back from the role and the rules applied to it.
               </p>
             </CardContent>
           </Card>
@@ -389,6 +636,58 @@ export default function CrossAccountAccess() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
+        >
+          <PolicyValidator />
+        </motion.div>
+
+        {findings.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.35 }}
+          >
+            <Card className="bg-card/50 backdrop-blur-sm border-card-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <IconHistory className="h-5 w-5 text-primary" />
+                  Findings raised and closed
+                  <Badge variant="secondary" className="ml-2">{findings.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {findings.map(finding => {
+                  const tool = getSaasTool(finding.toolId);
+                  return (
+                    <div
+                      key={finding.id}
+                      className="p-4 rounded-xl border border-border bg-background/50"
+                      data-testid={`finding-${finding.id}`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <span className="text-sm font-semibold text-foreground">{tool?.name ?? finding.toolId}</span>
+                        <span className="text-muted-foreground text-xs">·</span>
+                        <span className="text-xs text-muted-foreground">{getCustomerName(finding.customerId)}</span>
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 gap-1">
+                          <IconCircleCheck className="h-3 w-3" />
+                          Closed {finding.closedOn}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-foreground/90">{finding.summary}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Raised {finding.raisedOn}. {finding.action}
+                      </p>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
         >
           <Card className="bg-card/50 backdrop-blur-sm border-card-border">
             <CardHeader className="pb-3">
@@ -423,31 +722,17 @@ export default function CrossAccountAccess() {
               <div>
                 <p className="text-sm font-semibold text-foreground mb-2">Trust policy shape</p>
                 <p className="text-xs text-muted-foreground mb-3 max-w-3xl">
-                  The first statement lets only the vendor's account assume the role, and only when it
-                  passes the external ID we issued. The second stops the role being assumed at all if the
-                  external ID is missing, so the condition cannot be dropped by a later policy edit.
+                  The first statement lets only the vendor's account assume the role, and only when it passes
+                  the external ID we issued. The second stops the role being assumed at all if the external ID
+                  is missing, so the condition cannot be dropped by a later policy edit.
                 </p>
                 <PolicyBlock
+                  testId="button-copy-reference-policy"
                   policy={JSON.stringify(
-                    {
-                      Version: '2012-10-17',
-                      Statement: [
-                        {
-                          Sid: 'VendorCrossAccountAccess',
-                          Effect: 'Allow',
-                          Principal: { AWS: 'arn:aws:iam::<VENDOR_ACCOUNT_ID>:root' },
-                          Action: 'sts:AssumeRole',
-                          Condition: { StringEquals: { 'sts:ExternalId': '<EXTERNAL_ID>' } },
-                        },
-                        {
-                          Sid: 'DenyAssumeRoleWithoutExternalId',
-                          Effect: 'Deny',
-                          Principal: { AWS: '*' },
-                          Action: 'sts:AssumeRole',
-                          Condition: { Null: { 'sts:ExternalId': 'true' } },
-                        },
-                      ],
-                    },
+                    buildTrustPolicy(
+                      { ...getSaasTools()[0], name: 'Vendor', vendorAccountId: '<VENDOR_ACCOUNT_ID>' },
+                      '<EXTERNAL_ID>'
+                    ),
                     null,
                     2
                   )}
@@ -462,11 +747,11 @@ export default function CrossAccountAccess() {
             {openRow && (
               <>
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
+                  <DialogTitle className="flex items-center gap-2 flex-wrap">
                     {openRow.tool.name}
                     <span className="text-muted-foreground font-normal">·</span>
                     <span className="text-muted-foreground font-normal text-base">
-                      {getCustomerName(openRow.connection.customerId)}
+                      {getCustomerName(openRow.role.customerId)}
                     </span>
                     {openRow.tool.partnerOperated && (
                       <Badge variant="secondary" className="text-[10px]">Operated by us</Badge>
@@ -476,17 +761,31 @@ export default function CrossAccountAccess() {
 
                 <p className="text-sm text-muted-foreground -mt-1">{openRow.tool.purpose}</p>
 
+                <div
+                  className={cn(
+                    'rounded-xl border p-3',
+                    openRow.verdict.compliant
+                      ? 'border-emerald-500/40 bg-emerald-500/5'
+                      : 'border-red-500/40 bg-red-500/5'
+                  )}
+                >
+                  <CheckList verdict={openRow.verdict} />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { label: 'Vendor', value: openRow.tool.vendor },
                     { label: 'Category', value: openRow.tool.category },
-                    { label: 'Role ARN', value: roleArn(openRow.tool, openRow.connection), mono: true },
-                    { label: 'Vendor AWS account', value: openRow.tool.vendorAccountId, mono: true },
-                    { label: 'External ID', value: openRow.connection.externalId, mono: true },
+                    { label: 'Role ARN', value: openRow.role.roleArn, mono: true },
+                    { label: 'Role ID', value: openRow.role.roleId, mono: true },
+                    { label: 'Trusted principal', value: openRow.verdict.trustedPrincipals.join(', '), mono: true },
+                    { label: 'External ID', value: externalIdOf(openRow), mono: true },
                     { label: 'Access', value: openRow.tool.accessType },
-                    { label: 'Accounts covered', value: String(openRow.connection.accountsCovered) },
+                    { label: 'Accounts covered', value: String(openRow.role.accountsCovered) },
+                    { label: 'Role created', value: openRow.role.createdDate },
+                    { label: 'Role last used', value: openRow.role.roleLastUsed },
                     { label: 'Internal owner', value: openRow.tool.owner },
-                    { label: 'Last verified', value: `${openRow.connection.lastVerified} by ${openRow.connection.verifiedBy}` },
+                    { label: 'Last verified', value: `${openRow.role.lastVerified} by ${openRow.role.verifiedBy}` },
                   ].map(field => (
                     <div key={field.label} className="p-3 rounded-lg border border-border bg-background/50 min-w-0">
                       <p className="text-[11px] text-muted-foreground mb-0.5">{field.label}</p>
@@ -500,7 +799,7 @@ export default function CrossAccountAccess() {
                 <div>
                   <p className="text-sm font-semibold text-foreground mb-2">Attached permissions</p>
                   <div className="flex flex-wrap gap-2">
-                    {openRow.tool.permissions.map(permission => (
+                    {openRow.role.attachedPolicies.map(permission => (
                       <Badge key={permission} variant="outline" className="text-[11px] font-mono">
                         {permission}
                       </Badge>
@@ -509,11 +808,10 @@ export default function CrossAccountAccess() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                    <IconBuildingSkyscraper className="h-4 w-4 text-muted-foreground" />
-                    Trust policy on {roleArn(openRow.tool, openRow.connection).split('/').pop()}
+                  <p className="text-sm font-semibold text-foreground mb-2">
+                    AssumeRolePolicyDocument on {openRow.role.roleName}
                   </p>
-                  <PolicyBlock policy={buildTrustPolicy(openRow.tool, openRow.connection)} />
+                  <PolicyBlock policy={JSON.stringify(openRow.role.trustPolicy, null, 2)} />
                 </div>
 
                 <a
