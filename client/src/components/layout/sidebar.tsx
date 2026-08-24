@@ -20,6 +20,7 @@ import {
   IconTag,
   IconTrash,
   IconBriefcase,
+  IconShieldLock,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
@@ -65,10 +66,21 @@ const secondaryNavItems: NavItem[] = [
   { icon: IconChartBar, label: 'Reports', href: '/reports' },
 ];
 
-const governanceNavItems: NavItem[] = [
+const baseGovernanceNavItems: NavItem[] = [
   { icon: IconTag, label: 'Tag Compliance', href: '/tagging' },
   { icon: IconTrash, label: 'Waste Detection', href: '/waste' },
 ];
+
+function useGovernanceNavItems() {
+  const { selectedProvider } = useFinOpsStore();
+
+  return useMemo<NavItem[]>(() => [
+    ...baseGovernanceNavItems,
+    ...(supportsCustomers(selectedProvider)
+      ? [{ icon: IconShieldLock, label: 'Cross-Account Access', href: '/cross-account-access' }]
+      : []),
+  ], [selectedProvider]);
+}
 
 const bottomNavItems: NavItem[] = [
   { icon: IconSettings, label: 'Settings', href: '/settings' },
@@ -142,6 +154,7 @@ export function Sidebar() {
   const [location] = useLocation();
   const { sidebarCollapsed, setSidebarCollapsed } = useFinOpsStore();
   const mainNavItems = useNavItems();
+  const governanceNavItems = useGovernanceNavItems();
 
   return (
     <aside
