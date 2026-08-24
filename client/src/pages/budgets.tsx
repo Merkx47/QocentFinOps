@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { getOrgUnits, generateKPIs } from '@/lib/mock-data';
+import { getOrgUnits, generateKPIs } from '@/lib/finops-data';
 import { useMemo, useState } from 'react';
 import {
   IconTarget,

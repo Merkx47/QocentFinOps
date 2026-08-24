@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore, formatCompactCurrency } from '@/lib/finops-store';
-import { generateCostTrend } from '@/lib/mock-data';
+import { generateCostTrend } from '@/lib/finops-data';
 import { useMemo } from 'react';
 import {
   AreaChart,

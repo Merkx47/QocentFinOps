@@ -59,7 +59,7 @@ const REPORT_TYPES = ['Cost Analysis', 'Utilization', 'Recommendations', 'Budget
 const SCHEDULE_OPTIONS = ['Daily', 'Weekly', 'Monthly'] as const;
 
 export default function Reports() {
-  const mockReports = useReports();
+  const standardReports = useReports();
   const { toast } = useToast();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function Reports() {
   const [form, setForm] = useState({ name: '', type: '', schedule: '' });
   const [runningReportId, setRunningReportId] = useState<string | null>(null);
 
-  const allReports = [...mockReports, ...customReports];
+  const allReports = [...standardReports, ...customReports];
 
   function handleCreateReport() {
     if (!form.name || !form.type || !form.schedule) {

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateRegionBreakdown } from '@/lib/mock-data';
+import { generateRegionBreakdown } from '@/lib/finops-data';
 import { getRegionNames, getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import {

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TablePagination } from '@/components/ui/table-pagination';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateSavingsPlans } from '@/lib/mock-data';
+import { generateSavingsPlans } from '@/lib/finops-data';
 import { getProviderConfig } from '@/lib/provider-config';
 import { useTableControls } from '@/hooks/use-table-controls';
 import { useMemo, useState } from 'react';

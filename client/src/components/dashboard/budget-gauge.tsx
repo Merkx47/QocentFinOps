@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateKPIs } from '@/lib/mock-data';
+import { generateKPIs } from '@/lib/finops-data';
 import { useMemo } from 'react';
 import { IconTarget, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import { motion } from 'framer-motion';

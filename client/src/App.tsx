@@ -13,6 +13,7 @@ import Analytics from "@/pages/analytics";
 import Resources from "@/pages/resources";
 import Recommendations from "@/pages/recommendations";
 import Tenants from "@/pages/tenants";
+import Customers from "@/pages/customers";
 import Budgets from "@/pages/budgets";
 import Allocation from "@/pages/allocation";
 import Reports from "@/pages/reports";
@@ -53,13 +54,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardRouter() {
+  // Re-key on the active customer so every page re-derives its data on a filter change.
+  const { selectedCustomerId } = useFinOpsStore();
+
   return (
-    <Switch>
+    <Switch key={selectedCustomerId}>
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/resources" component={Resources} />
       <Route path="/recommendations" component={Recommendations} />
       <Route path="/tenants" component={Tenants} />
+      <Route path="/customers" component={Customers} />
       <Route path="/budgets" component={Budgets} />
       <Route path="/allocation" component={Allocation} />
       <Route path="/reports" component={Reports} />

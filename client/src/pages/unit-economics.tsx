@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateUnitEconomics } from '@/lib/mock-data';
+import { generateUnitEconomics } from '@/lib/finops-data';
 import { useMemo } from 'react';
 import {
   ComposedChart,

@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateKPIs } from '@/lib/mock-data';
+import { generateKPIs } from '@/lib/finops-data';
 import { getProviderConfig } from '@/lib/provider-config';
 import { 
   IconTrendingUp, 

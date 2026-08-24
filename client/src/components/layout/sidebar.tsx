@@ -19,10 +19,12 @@ import {
   IconBell,
   IconTag,
   IconTrash,
+  IconBriefcase,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
 import { getProviderConfig } from '@/lib/provider-config';
+import { supportsCustomers } from '@/lib/customers';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo } from 'react';
 
@@ -42,8 +44,11 @@ function useNavItems() {
     { icon: IconTrendingUp, label: 'Cost Analytics', href: '/analytics' },
     { icon: IconServer2, label: 'Resources', href: '/resources' },
     { icon: IconBulb, label: 'Recommendations', href: '/recommendations', badge: 10 },
+    ...(supportsCustomers(selectedProvider)
+      ? [{ icon: IconBriefcase, label: 'Customers', href: '/customers' }]
+      : []),
     { icon: IconUsersGroup, label: config.hierarchy.orgUnitLabelPlural, href: '/tenants' },
-  ], [config.hierarchy.orgUnitLabelPlural]);
+  ], [config.hierarchy.orgUnitLabelPlural, selectedProvider]);
 
   return mainNavItems;
 }

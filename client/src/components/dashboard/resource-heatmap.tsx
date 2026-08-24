@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
-import { generateResources } from '@/lib/mock-data';
+import { generateResources } from '@/lib/finops-data';
 import { getServiceInfo } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import { 

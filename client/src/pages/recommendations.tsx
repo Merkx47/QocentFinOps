@@ -17,7 +17,7 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateRecommendations } from '@/lib/mock-data';
+import { generateRecommendations } from '@/lib/finops-data';
 import { getServiceInfo } from '@/lib/provider-config';
 import type { Recommendation, RecommendationType, RecommendationImpact } from '@shared/schema';
 import { useMemo, useState } from 'react';

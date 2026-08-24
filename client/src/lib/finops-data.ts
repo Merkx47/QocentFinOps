@@ -10,12 +10,55 @@ import type {
 } from '@shared/schema';
 import type { CloudProvider, OrgUnit } from './provider-config';
 import { getProviderConfig, getServiceInfo, getRegionNames } from './provider-config';
+import { getCustomer, type Customer } from './customers';
+import { useFinOpsStore } from './finops-store';
+
+// Customer scope — AWS portal only. Every generator below is keyed on the active
+// customer so switching customers re-derives the whole dataset, and each customer
+// carries its share of portfolio spend.
+interface CustomerScope {
+  key: string;
+  weight: number;
+  customer?: Customer;
+}
+
+let scopeOverride: string | null = null;
+
+/**
+ * Run `fn` as if `customerId` were the active filter. Used to compare customers
+ * side by side without disturbing the current selection.
+ */
+export function withCustomerScope<T>(customerId: string | 'all', fn: () => T): T {
+  const previous = scopeOverride;
+  scopeOverride = customerId;
+  try {
+    return fn();
+  } finally {
+    scopeOverride = previous;
+  }
+}
+
+function getCustomerScope(): CustomerScope {
+  const { selectedProvider, selectedCustomerId } = useFinOpsStore.getState();
+  const activeId = scopeOverride ?? selectedCustomerId;
+  if (selectedProvider !== 'aws' || activeId === 'all') {
+    return { key: 'portfolio', weight: 1 };
+  }
+  const customer = getCustomer(activeId);
+  if (!customer) return { key: 'portfolio', weight: 1 };
+  return { key: customer.id, weight: customer.spendWeight, customer };
+}
+
+function customerWeight(): number {
+  return getCustomerScope().weight;
+}
 
 // Deterministic seeded PRNG (mulberry32) — ensures same inputs always produce same data
 function createSeededRandom(seed: string): () => number {
+  const scopedSeed = `${getCustomerScope().key}::${seed}`;
   let h = 0;
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  for (let i = 0; i < scopedSeed.length; i++) {
+    h = Math.imul(31, h) + scopedSeed.charCodeAt(i) | 0;
   }
   return () => {
     h |= 0; h = h + 0x6D2B79F5 | 0;
@@ -44,8 +87,9 @@ export function generateCostTrend(tenantId: string | 'all', provider: CloudProvi
   const today = dateRange?.endDate ? new Date(dateRange.endDate) : new Date();
 
   const providerMultiplier = provider === 'aws' ? 1.2 : provider === 'azure' ? 1.1 : provider === 'gcp' ? 1.0 : 0.9;
-  const baseAmount = (tenantId === 'all' ? 45000 : 8000) * providerMultiplier;
-  const variance = (tenantId === 'all' ? 8000 : 1500) * providerMultiplier;
+  const cw = customerWeight();
+  const baseAmount = (tenantId === 'all' ? 45000 : 8000) * providerMultiplier * cw;
+  const variance = (tenantId === 'all' ? 8000 : 1500) * providerMultiplier * cw;
 
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
@@ -55,7 +99,7 @@ export function generateCostTrend(tenantId: string | 'all', provider: CloudProvi
     const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.85 : 1;
 
     const randomVariance = (rand() - 0.5) * variance;
-    const trendGrowth = (days - i) * 50;
+    const trendGrowth = (days - i) * 50 * cw;
 
     const amount = Math.max(0, (baseAmount + randomVariance + trendGrowth) * weekendFactor);
 
@@ -70,8 +114,8 @@ export function generateCostTrend(tenantId: string | 'all', provider: CloudProvi
     const date = new Date(today);
     date.setDate(date.getDate() + i);
 
-    const forecastGrowth = i * 80;
-    const forecast = lastAmount + forecastGrowth + (rand() - 0.5) * 500;
+    const forecastGrowth = i * 80 * cw;
+    const forecast = lastAmount + forecastGrowth + (rand() - 0.5) * 500 * cw;
 
     data.push({
       date: date.toISOString().split('T')[0],
@@ -92,7 +136,7 @@ export function generateServiceBreakdown(tenantId: string | 'all', provider: Clo
 
   const baseCosts: number[] = [45000, 28000, 15000, 12000, 8500, 5200, 9800, 3200, 4500, 6800, 7200, 11000, 2800, 3500, 18000, 14000, 9500, 4200];
 
-  const multiplier = tenantId === 'all' ? 1 : 0.15;
+  const multiplier = (tenantId === 'all' ? 1 : 0.15) * customerWeight();
 
   const breakdown = services.map((service, i) => {
     const baseCost = baseCosts[i % baseCosts.length];
@@ -127,7 +171,7 @@ export function generateRegionBreakdown(tenantId: string | 'all', provider: Clou
 
   const baseCosts: number[] = [65000, 42000, 35000, 28000, 18000, 15000, 8000, 5000];
 
-  const multiplier = tenantId === 'all' ? 1 : 0.15;
+  const multiplier = (tenantId === 'all' ? 1 : 0.15) * customerWeight();
 
   const breakdown = regions.map((region, i) => {
     const baseCost = baseCosts[i % baseCosts.length];
@@ -156,15 +200,21 @@ export function generateKPIs(tenantId: string | 'all', provider: CloudProvider =
   const dayScale = days / 30;
   const rand = createSeededRandom(`kpis-${tenantId}-${provider}-${days}`);
   const isAll = tenantId === 'all';
-  const multiplier = isAll ? 1 : 0.15;
+  const scope = getCustomerScope();
+  const multiplier = (isAll ? 1 : 0.15) * scope.weight;
   const orgUnits = getOrgUnits(provider);
 
   const totalSpend = (185000 + rand() * 30000) * multiplier * dayScale;
   const previousSpend = totalSpend * (0.88 + rand() * 0.08);
   const spendGrowthRate = ((totalSpend - previousSpend) / previousSpend) * 100;
 
-  const totalBudget = isAll ? 2300000 : orgUnits.find(u => u.id === tenantId)?.budget || 200000;
+  const portfolioBudget = scope.customer ? scope.customer.budget : 2300000;
+  const totalBudget = isAll
+    ? portfolioBudget
+    : Math.round((orgUnits.find(u => u.id === tenantId)?.budget || 200000) * scope.weight);
   const budgetUsed = (totalSpend / totalBudget) * 100;
+
+  const activeResources = Math.max(1, Math.floor((isAll ? 847 : 120 + rand() * 50) * scope.weight));
 
   return {
     totalSpend: Math.round(totalSpend * 100) / 100,
@@ -172,11 +222,11 @@ export function generateKPIs(tenantId: string | 'all', provider: CloudProvider =
     spendGrowthRate: Math.round(spendGrowthRate * 10) / 10,
     budgetUsed: Math.round(budgetUsed * 10) / 10,
     totalBudget,
-    activeResources: Math.floor(isAll ? 847 : 120 + rand() * 50),
-    optimizationOpportunities: Math.floor(isAll ? 156 : 18 + rand() * 12),
+    activeResources,
+    optimizationOpportunities: Math.max(1, Math.floor((isAll ? 156 : 18 + rand() * 12) * scope.weight)),
     potentialSavings: Math.round((totalSpend * (0.12 + rand() * 0.08)) * 100) / 100,
     averageEfficiency: Math.round((75 + rand() * 18) * 10) / 10,
-    costPerResource: Math.round((totalSpend / (isAll ? 847 : 150)) * 100) / 100,
+    costPerResource: Math.round((totalSpend / activeResources) * 100) / 100,
   };
 }
 
@@ -241,7 +291,11 @@ function getProviderRecommendations(tenantId: string | 'all', provider: CloudPro
 }
 
 export function generateRecommendations(tenantId: string | 'all', provider: CloudProvider = 'huawei'): Recommendation[] {
-  const recommendations = getProviderRecommendations(tenantId, provider);
+  const weight = customerWeight();
+  const scale = (value: number) => Math.round(value * weight * 100) / 100;
+  const recommendations = getProviderRecommendations(tenantId, provider).map(r =>
+    weight === 1 ? r : { ...r, currentCost: scale(r.currentCost), projectedSavings: scale(r.projectedSavings) }
+  );
 
   if (tenantId !== 'all') {
     return recommendations.filter(r => r.tenantId === tenantId).slice(0, 5);
@@ -288,7 +342,7 @@ export function generateResources(tenantId: string | 'all', provider: CloudProvi
   const orgUnits = getOrgUnits(provider);
 
   const resources: Resource[] = [];
-  const resourceCount = tenantId === 'all' ? 50 : 15;
+  const resourceCount = Math.max(6, Math.round((tenantId === 'all' ? 50 : 15) * customerWeight()));
 
   for (let i = 0; i < resourceCount; i++) {
     const service = services[Math.floor(rand() * services.length)];
@@ -342,6 +396,7 @@ export interface CostAnomaly {
 
 export function generateAnomalies(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): CostAnomaly[] {
   const rand = createSeededRandom(`anomalies-${orgUnitId}-${provider}`);
+  const cw = customerWeight();
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 8);
   const regions = config.regions.slice(0, 5);
@@ -372,7 +427,7 @@ export function generateAnomalies(orgUnitId: string | 'all', provider: CloudProv
     const daysAgo = Math.floor(rand() * 14);
     const date = new Date(today);
     date.setDate(date.getDate() - daysAgo);
-    const expectedCost = 500 + rand() * 3000;
+    const expectedCost = (500 + rand() * 3000) * cw;
     const actualCost = expectedCost * (1 + template.deviation / 100);
 
     return {
@@ -420,6 +475,7 @@ export interface SavingsPlanData {
 
 export function generateSavingsPlans(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): SavingsPlanData {
   const rand = createSeededRandom(`savingsPlans-${orgUnitId}-${provider}`);
+  const cw = customerWeight();
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 6);
   const today = new Date();
@@ -435,7 +491,7 @@ export function generateSavingsPlans(orgUnitId: string | 'all', provider: CloudP
 
   const commitments: Commitment[] = types.map((type, i) => {
     const term = i % 3 === 0 ? '3-year' : '1-year' as const;
-    const monthlyCommitment = 800 + rand() * 4000;
+    const monthlyCommitment = (800 + rand() * 4000) * cw;
     const monthlyOnDemand = monthlyCommitment * (1.3 + rand() * 0.5);
     const utilization = 60 + rand() * 38;
     const coverage = 50 + rand() * 45;
@@ -510,7 +566,7 @@ export interface ForecastData {
 
 export function generateForecast(orgUnitId: string | 'all', provider: CloudProvider = 'huawei'): ForecastData {
   const rand = createSeededRandom(`forecast-${orgUnitId}-${provider}`);
-  const multiplier = orgUnitId === 'all' ? 1 : 0.15;
+  const multiplier = (orgUnitId === 'all' ? 1 : 0.15) * customerWeight();
   const providerMult = provider === 'aws' ? 1.2 : provider === 'azure' ? 1.1 : provider === 'gcp' ? 1.0 : 0.9;
   const baseAmount = 45000 * multiplier * providerMult;
   const today = new Date();
@@ -615,7 +671,8 @@ export function generateTagCompliance(orgUnitId: string | 'all', provider: Cloud
   };
 
   const tags = tagsByProvider[provider];
-  const totalResources = orgUnitId === 'all' ? 847 : 120;
+  const cw = customerWeight();
+  const totalResources = Math.max(20, Math.round((orgUnitId === 'all' ? 847 : 120) * cw));
   const complianceBase = 65 + rand() * 20;
 
   const requiredTags: TagRule[] = tags.map(tag => {
@@ -638,7 +695,7 @@ export function generateTagCompliance(orgUnitId: string | 'all', provider: Cloud
       orgUnitId: ou.id,
       orgUnitName: ou.name,
       compliance: Math.round((55 + ouRand() * 40) * 10) / 10,
-      untaggedCost: Math.round((2000 + ouRand() * 15000) * 100) / 100,
+      untaggedCost: Math.round((2000 + ouRand() * 15000) * cw * 100) / 100,
     };
   });
 
@@ -702,7 +759,7 @@ export function generateUnitEconomics(orgUnitId: string | 'all', provider: Cloud
   const rand = createSeededRandom(`unitEconomics-${orgUnitId}-${provider}-${days}`);
   const config = getProviderConfig(provider);
   const services = config.services.slice(0, 8);
-  const multiplier = orgUnitId === 'all' ? 1 : 0.3;
+  const multiplier = (orgUnitId === 'all' ? 1 : 0.3) * customerWeight();
 
   const metrics: UnitMetric[] = [
     { name: 'Cost per API Call', value: Math.round((0.0012 + rand() * 0.0008) * 10000) / 10000, unit: 'per call', trend: -(2 + rand() * 8), description: 'Average cost per API request across all endpoints' },
@@ -799,7 +856,7 @@ export function generateWasteAnalysis(orgUnitId: string | 'all', provider: Cloud
     'Unattached network interface',
   ];
 
-  const resourceCount = orgUnitId === 'all' ? 18 : 8;
+  const resourceCount = Math.max(4, Math.round((orgUnitId === 'all' ? 18 : 8) * customerWeight()));
   const resources: WastedResource[] = Array.from({ length: resourceCount }, (_, i) => {
     const service = services[i % services.length];
     const region = regions[i % regions.length];

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateServiceBreakdown, generateOrgUnitSummaries } from '@/lib/mock-data';
+import { generateServiceBreakdown, generateOrgUnitSummaries } from '@/lib/finops-data';
 import { getServiceInfo, getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import {

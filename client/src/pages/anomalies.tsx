@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateAnomalies } from '@/lib/mock-data';
+import { generateAnomalies } from '@/lib/finops-data';
 import { getRegionNames } from '@/lib/provider-config';
 import { useMemo, useState } from 'react';
 import {

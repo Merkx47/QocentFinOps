@@ -37,6 +37,9 @@ interface FinOpsStore {
   selectedOrgUnitId: string | 'all';
   setSelectedOrgUnitId: (orgUnitId: string | 'all') => void;
 
+  selectedCustomerId: string | 'all';
+  setSelectedCustomerId: (customerId: string | 'all') => void;
+
   dateRange: DateRange;
   setDateRange: (dateRange: DateRange) => void;
 
@@ -57,17 +60,17 @@ export const useFinOpsStore = create<FinOpsStore>()(
     (set) => ({
   selectedProvider: 'huawei',
   setSelectedProvider: (selectedProvider) => {
-    set({ selectedProvider, selectedOrgUnitId: 'all' });
+    set({ selectedProvider, selectedOrgUnitId: 'all', selectedCustomerId: 'all' });
     applyProviderTheme(selectedProvider);
   },
 
   user: null,
   isAuthenticated: false,
   login: (provider, user) => {
-    set({ selectedProvider: provider, user, isAuthenticated: true, selectedOrgUnitId: 'all' });
+    set({ selectedProvider: provider, user, isAuthenticated: true, selectedOrgUnitId: 'all', selectedCustomerId: 'all' });
     applyProviderTheme(provider);
   },
-  logout: () => set({ user: null, isAuthenticated: false, selectedProvider: 'huawei', selectedOrgUnitId: 'all' }),
+  logout: () => set({ user: null, isAuthenticated: false, selectedProvider: 'huawei', selectedOrgUnitId: 'all', selectedCustomerId: 'all' }),
 
   currency: 'USD',
   setCurrency: (currency) => set({ currency }),
@@ -80,6 +83,9 @@ export const useFinOpsStore = create<FinOpsStore>()(
 
   selectedOrgUnitId: 'all',
   setSelectedOrgUnitId: (selectedOrgUnitId) => set({ selectedOrgUnitId }),
+
+  selectedCustomerId: 'all',
+  setSelectedCustomerId: (selectedCustomerId) => set({ selectedCustomerId }),
 
   dateRange: {
     preset: 'last30days',

@@ -7,7 +7,7 @@ import { BudgetGauge } from '@/components/dashboard/budget-gauge';
 import { TenantComparison, TenantStatsCard } from '@/components/dashboard/tenant-comparison';
 import { ResourceHeatmap } from '@/components/dashboard/resource-heatmap';
 import { useFinOpsStore } from '@/lib/finops-store';
-import { getOrgUnits } from '@/lib/mock-data';
+import { getOrgUnits } from '@/lib/finops-data';
 import { getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';

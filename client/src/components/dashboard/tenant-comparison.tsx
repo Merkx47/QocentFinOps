@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateOrgUnitSummaries, getOrgUnits } from '@/lib/mock-data';
+import { generateOrgUnitSummaries, getOrgUnits } from '@/lib/finops-data';
 import { getServiceInfo, getProviderConfig } from '@/lib/provider-config';
 import { useMemo } from 'react';
 import { 

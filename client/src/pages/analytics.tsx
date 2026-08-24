@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useFinOpsStore, formatCurrency, formatCompactCurrency } from '@/lib/finops-store';
-import { generateCostTrend, generateServiceBreakdown, generateRegionBreakdown, generateKPIs } from '@/lib/mock-data';
+import { generateCostTrend, generateServiceBreakdown, generateRegionBreakdown, generateKPIs } from '@/lib/finops-data';
 import { getServiceInfo, getRegionNames } from '@/lib/provider-config';
 import { downloadCsv } from '@/lib/csv-utils';
 import { useMemo, useState } from 'react';

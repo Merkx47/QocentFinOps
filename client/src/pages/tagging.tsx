@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
-import { generateTagCompliance } from '@/lib/mock-data';
+import { generateTagCompliance } from '@/lib/finops-data';
 import { getProviderConfig } from '@/lib/provider-config';
 import { useTableControls } from '@/hooks/use-table-controls';
 import { TablePagination } from '@/components/ui/table-pagination';

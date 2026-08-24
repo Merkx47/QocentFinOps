@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
 import { useToast } from '@/hooks/use-toast';
-import { generateWasteAnalysis } from '@/lib/mock-data';
+import { generateWasteAnalysis } from '@/lib/finops-data';
 import { useMemo, useState } from 'react';
 import {
   IconTrash,

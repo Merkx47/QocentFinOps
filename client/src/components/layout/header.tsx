@@ -1,5 +1,6 @@
 import { useFinOpsStore, formatCompactCurrency, applyProviderTheme } from '@/lib/finops-store';
-import { getOrgUnits, generateKPIs } from '@/lib/mock-data';
+import { getOrgUnits, generateKPIs } from '@/lib/finops-data';
+import { getCustomers, supportsCustomers } from '@/lib/customers';
 import { getProviderConfig } from '@/lib/provider-config';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import {
   IconBuildingSkyscraper,
+  IconBriefcase,
   IconCalendarEvent,
   IconBell,
   IconSettings,
@@ -78,6 +80,8 @@ export function Header() {
     setLanguage,
     selectedOrgUnitId,
     setSelectedOrgUnitId,
+    selectedCustomerId,
+    setSelectedCustomerId,
     selectedProvider,
     dateRange,
     setDateRange,
@@ -89,6 +93,8 @@ export function Header() {
   const [isDark, setIsDark] = useState(false);
   const config = getProviderConfig(selectedProvider);
   const orgUnits = useMemo(() => getOrgUnits(selectedProvider), [selectedProvider]);
+  const customers = useMemo(() => getCustomers(selectedProvider), [selectedProvider]);
+  const showCustomers = supportsCustomers(selectedProvider);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -108,7 +114,10 @@ export function Header() {
     return orgUnits.find(u => u.id === selectedOrgUnitId);
   }, [selectedOrgUnitId, orgUnits]);
 
-  const kpis = useMemo(() => generateKPIs(selectedOrgUnitId, selectedProvider, dateRange), [selectedOrgUnitId, selectedProvider, dateRange]);
+  const kpis = useMemo(
+    () => generateKPIs(selectedOrgUnitId, selectedProvider, dateRange),
+    [selectedOrgUnitId, selectedProvider, dateRange, selectedCustomerId]
+  );
 
   const handleDateRangeChange = (preset: DateRangePreset) => {
     const today = new Date();
@@ -156,10 +165,39 @@ export function Header() {
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
             <ProviderLogo provider={selectedProvider} />
-            <div className="hidden sm:block">
-              <span className="text-sm font-semibold text-foreground">{config.shortName} FinOps</span>
-            </div>
           </div>
+
+          {showCustomers && (
+            <Select
+              value={selectedCustomerId}
+              onValueChange={setSelectedCustomerId}
+            >
+              <SelectTrigger className="w-auto min-w-[170px] max-w-[240px] bg-muted/50 [border-color:var(--button-outline)] shadow-xs rounded-xl h-9 text-sm overflow-hidden" data-testid="select-customer">
+                <div className="flex items-center gap-2 min-w-0">
+                  <IconBriefcase className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate"><SelectValue placeholder="Select Customer" /></span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">All Customers</span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                      {customers.length}
+                    </Badge>
+                  </div>
+                </SelectItem>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    <div className="flex items-center justify-between gap-3 w-full">
+                      <span>{customer.name}</span>
+                      <span className="text-xs text-muted-foreground">{customer.accountCount} accts</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <Select
             value={selectedOrgUnitId}

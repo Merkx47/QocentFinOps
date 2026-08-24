@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useFinOpsStore, formatCurrency } from '@/lib/finops-store';
-import { generateResources } from '@/lib/mock-data';
+import { generateResources } from '@/lib/finops-data';
 import { getServiceInfo, getRegionNames } from '@/lib/provider-config';
 import { downloadCsv } from '@/lib/csv-utils';
 import { useMemo, useState } from 'react';
