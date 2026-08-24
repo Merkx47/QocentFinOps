@@ -1,5 +1,6 @@
 import type { CloudProvider } from './provider-config';
 import { getCustomer, getCustomers } from './customers';
+import { buildTrustPolicy, getCustomerAwsOrg, getExternalId } from './cross-account-policies';
 import type { TrustPolicyDocument } from '@shared/trust-policy';
 
 /**
@@ -59,16 +60,6 @@ export interface ScanRecord {
   completedAt: string;
   accountsScanned: string[];
   roles: ScannedRole[];
-}
-
-export interface RemediatedFinding {
-  id: string;
-  customerId: string;
-  toolId: string;
-  raisedOn: string;
-  closedOn: string;
-  summary: string;
-  action: string;
 }
 
 const tools: SaasTool[] = [
@@ -204,53 +195,8 @@ const connectionMatrix: Record<string, { toolId: string; accounts: number; verif
   ],
 };
 
-const managementAccounts: Record<string, string> = {
-  'cust-nibss': '284619037521',
-  'cust-pencom': '739105482630',
-  'cust-firstbank': '410398276154',
-  'cust-fidelity': '628714509382',
-};
-
-const reviewers: Record<string, string> = {
-  'cust-nibss': 'Adaeze Okonkwo',
-  'cust-pencom': 'Ibrahim Musa',
-  'cust-firstbank': 'Folake Adeyemi',
-  'cust-fidelity': 'Chuka Nwankwo',
-};
-
-/** Findings this check has raised in the past, and what closed them. */
-const remediatedFindings: RemediatedFinding[] = [
-  {
-    id: 'finding-001',
-    customerId: 'cust-pencom',
-    toolId: 'tool-servicenow',
-    raisedOn: '2026-06-14',
-    closedOn: '2026-06-16',
-    summary: 'ServiceNowDiscoveryRole trusted the vendor account with no sts:ExternalId condition.',
-    action: 'Condition added, external ID reissued and shared with the vendor out of band, role redeployed by StackSet.',
-  },
-  {
-    id: 'finding-002',
-    customerId: 'cust-firstbank',
-    toolId: 'tool-snowflake',
-    raisedOn: '2026-04-02',
-    closedOn: '2026-04-09',
-    summary: 'SnowflakeExternalStageRole used a StringLike condition, so any external ID satisfied it.',
-    action: 'Switched to StringEquals against a single issued value.',
-  },
-  {
-    id: 'finding-003',
-    customerId: 'cust-nibss',
-    toolId: 'tool-datadog',
-    raisedOn: '2026-01-21',
-    closedOn: '2026-01-23',
-    summary: 'External ID was the customer short name, which is guessable.',
-    action: 'Replaced with a 36 character issued value and rotated at the vendor.',
-  },
-];
-
-/** Stable pseudo-random suffix so an external ID looks unguessable but stays put between renders. */
-function externalIdSuffix(seed: string): string {
+/** Stable digest so a role ID stays put between renders. */
+function digest(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
     h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
@@ -267,7 +213,7 @@ function externalIdSuffix(seed: string): string {
 
 function roleIdSuffix(seed: string): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  const hex = externalIdSuffix(seed).replace(/-/g, '');
+  const hex = digest(seed).replace(/-/g, '');
   let out = '';
   for (let i = 0; i < 17; i++) {
     out += alphabet[parseInt(hex[i % hex.length], 16) % alphabet.length];
@@ -293,33 +239,6 @@ export function getCustomerName(customerId: string): string {
   return getCustomer(customerId)?.name ?? customerId;
 }
 
-export function buildExternalId(customerId: string, toolId: string): string {
-  return `qocent-${customerId.replace('cust-', '')}-${externalIdSuffix(`${customerId}:${toolId}`)}`;
-}
-
-/** The document IAM returns as AssumeRolePolicyDocument for one of these roles. */
-export function buildTrustPolicy(tool: SaasTool, externalId: string): TrustPolicyDocument {
-  return {
-    Version: '2012-10-17',
-    Statement: [
-      {
-        Sid: `${tool.name.replace(/[^A-Za-z0-9]/g, '')}CrossAccountAccess`,
-        Effect: 'Allow',
-        Principal: { AWS: `arn:aws:iam::${tool.vendorAccountId}:root` },
-        Action: 'sts:AssumeRole',
-        Condition: { StringEquals: { 'sts:ExternalId': externalId } },
-      },
-      {
-        Sid: 'DenyAssumeRoleWithoutExternalId',
-        Effect: 'Deny',
-        Principal: { AWS: '*' },
-        Action: 'sts:AssumeRole',
-        Condition: { Null: { 'sts:ExternalId': 'true' } },
-      },
-    ],
-  };
-}
-
 /**
  * Enumerate the cross-account roles held in customer accounts.
  * Third-party tooling is an AWS-portal concept, so other providers return nothing.
@@ -330,14 +249,31 @@ export function runCrossAccountScan(provider: CloudProvider, customerId: string 
   }
 
   const customerIds = customerId === 'all' ? getCustomers(provider).map(c => c.id) : [customerId];
-  const accountsScanned = customerIds.map(cid => managementAccounts[cid]).filter(Boolean);
+  const accountsScanned = customerIds
+    .map(cid => getCustomerAwsOrg(cid)?.managementAccountId)
+    .filter((id): id is string => Boolean(id));
 
   const roles = customerIds.flatMap(cid =>
     (connectionMatrix[cid] ?? []).flatMap(entry => {
       const tool = getSaasTool(entry.toolId);
       if (!tool) return [];
-      const accountId = managementAccounts[cid] ?? '000000000000';
-      const externalId = buildExternalId(cid, entry.toolId);
+      const org = getCustomerAwsOrg(cid);
+      const accountId = org?.managementAccountId ?? '000000000000';
+      const sid = `${tool.name.replace(/[^A-Za-z0-9]/g, '')}CrossAccountAccess`;
+      const issued = getExternalId(cid, entry.toolId);
+
+      // No issued value means nothing gates the role, and the policy read back says so.
+      const trustPolicy: TrustPolicyDocument = issued
+        ? buildTrustPolicy({ sid, vendorAccountId: tool.vendorAccountId, externalId: issued.value })
+        : {
+            Version: '2012-10-17',
+            Statement: [{
+              Sid: sid,
+              Effect: 'Allow',
+              Principal: { AWS: `arn:aws:iam::${tool.vendorAccountId}:root` },
+              Action: 'sts:AssumeRole',
+            }],
+          };
 
       return [{
         connectionId: `${cid}-${entry.toolId}`,
@@ -351,9 +287,9 @@ export function runCrossAccountScan(provider: CloudProvider, customerId: string 
         roleLastUsed: daysAgo(entry.lastUsedDaysAgo),
         accountsCovered: entry.accounts,
         attachedPolicies: tool.permissions,
-        trustPolicy: buildTrustPolicy(tool, externalId),
+        trustPolicy,
         lastVerified: daysAgo(entry.verifiedDaysAgo),
-        verifiedBy: reviewers[cid] ?? 'Cloud Platform Team',
+        verifiedBy: org?.reviewer ?? 'Cloud Platform Team',
       }];
     })
   );
@@ -366,8 +302,3 @@ export function runCrossAccountScan(provider: CloudProvider, customerId: string 
   };
 }
 
-export function getRemediatedFindings(customerId: string | 'all'): RemediatedFinding[] {
-  return customerId === 'all'
-    ? remediatedFindings
-    : remediatedFindings.filter(f => f.customerId === customerId);
-}

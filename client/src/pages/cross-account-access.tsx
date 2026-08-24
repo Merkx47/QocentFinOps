@@ -14,15 +14,22 @@ import { useFinOpsStore } from '@/lib/finops-store';
 import { downloadCsv } from '@/lib/csv-utils';
 import { useToast } from '@/hooks/use-toast';
 import {
-  buildTrustPolicy,
   getCustomerName,
-  getRemediatedFindings,
   getSaasTool,
   getSaasTools,
   runCrossAccountScan,
   type SaasTool,
   type ScannedRole,
 } from '@/lib/cross-account-scanner';
+import {
+  EXTERNAL_ID_STANDARD,
+  buildTrustPolicy,
+  getCustomerAwsOrg,
+  getExternalId,
+  getPolicyFindings,
+  isRotationDue,
+  listRetiredExternalIds,
+} from '@/lib/cross-account-policies';
 import {
   evaluateTrustPolicy,
   parseTrustPolicy,
@@ -241,7 +248,8 @@ export default function CrossAccountAccess() {
       .sort((a, b) => a.tool.name.localeCompare(b.tool.name));
   }, [scan]);
 
-  const findings = useMemo(() => getRemediatedFindings(selectedCustomerId), [selectedCustomerId]);
+  const findings = useMemo(() => getPolicyFindings(selectedCustomerId), [selectedCustomerId]);
+  const retiredIds = useMemo(() => listRetiredExternalIds(selectedCustomerId), [selectedCustomerId]);
 
   const categories = useMemo(
     () => Array.from(new Set(getSaasTools().map(t => t.category))).sort(),
@@ -270,6 +278,10 @@ export default function CrossAccountAccess() {
     const staleVerification = rows.filter(
       r => daysSince(r.role.lastVerified) > VERIFICATION_WINDOW_DAYS
     ).length;
+    const rotationDue = rows.filter(r => {
+      const issued = getExternalId(r.role.customerId, r.tool.id);
+      return issued ? isRotationDue(issued) : false;
+    }).length;
     return {
       tools: new Set(rows.map(r => r.tool.id)).size,
       connections: rows.length,
@@ -277,6 +289,7 @@ export default function CrossAccountAccess() {
       ungated: rows.length - gated,
       advisories,
       staleVerification,
+      rotationDue,
     };
   }, [rows]);
 
@@ -296,8 +309,8 @@ export default function CrossAccountAccess() {
       `cross-account-access-${selectedCustomerId}.csv`,
       [
         'Tool', 'Vendor', 'Operated by', 'Category', 'Customer', 'Role ARN', 'Role ID',
-        'Trusted principal', 'External ID enforced', 'External ID', 'Access',
-        'Accounts covered', 'Role created', 'Role last used', 'Last verified', 'Verified by',
+        'Trusted principal', 'External ID enforced', 'External ID', 'Issued on', 'Rotates on',
+        'Access', 'Accounts covered', 'Role created', 'Role last used', 'Last verified', 'Verified by',
       ],
       filtered.map(({ tool, role, verdict }) => [
         tool.name,
@@ -310,6 +323,8 @@ export default function CrossAccountAccess() {
         verdict.trustedPrincipals.join(' '),
         verdict.compliant ? 'Yes' : 'No',
         externalIdOf({ tool, role, verdict }),
+        getExternalId(role.customerId, tool.id)?.issuedOn ?? '',
+        getExternalId(role.customerId, tool.id)?.rotatesOn ?? '',
         tool.accessType,
         role.accountsCovered,
         role.createdDate,
@@ -341,17 +356,26 @@ export default function CrossAccountAccess() {
       `${stats.gated} of ${stats.connections} role connections gate sts:AssumeRole on an external ID.`,
       'No third-party or partner-operated tool holds an IAM user or long-lived access key in a customer account.',
       '',
+      '## How external IDs are issued',
+      '',
+      `- Issued by ${EXTERNAL_ID_STANDARD.issuer}, never chosen by the vendor.`,
+      `- ${EXTERNAL_ID_STANDARD.randomLength} random characters after a customer specific prefix.`,
+      `- Rotated every ${EXTERNAL_ID_STANDARD.rotationMonths} months and on offboarding.`,
+      `- ${EXTERNAL_ID_STANDARD.transport}`,
+      `- ${EXTERNAL_ID_STANDARD.note}`,
+      '',
       '## Rules applied to every trust policy',
       '',
       ...checkLabels.map(c => `- **${c.label}** (${c.severity === 'required' ? 'required' : 'advisory'})`),
       '',
       '## Tools with access to customer AWS accounts',
       '',
-      '| Tool | Operated by | Customer | IAM role | Trusted principal | External ID enforced | Access | Accounts |',
-      '| --- | --- | --- | --- | --- | --- | --- | --- |',
-      ...filtered.map(({ tool, role, verdict }) =>
-        `| ${tool.name} | ${tool.partnerOperated ? 'Qucoon' : tool.vendor} | ${getCustomerName(role.customerId)} | \`${role.roleArn}\` | \`${verdict.trustedPrincipals.join(', ')}\` | ${verdict.compliant ? 'Yes' : 'No'} | ${tool.accessType} | ${role.accountsCovered} |`
-      ),
+      '| Tool | Operated by | Customer | IAM role | Trusted principal | External ID enforced | Issued | Rotates | Access | Accounts |',
+      '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+      ...filtered.map(({ tool, role, verdict }) => {
+        const issued = getExternalId(role.customerId, tool.id);
+        return `| ${tool.name} | ${tool.partnerOperated ? 'Qucoon' : tool.vendor} | ${getCustomerName(role.customerId)} | \`${role.roleArn}\` | \`${verdict.trustedPrincipals.join(', ')}\` | ${verdict.compliant ? 'Yes' : 'No'} | ${issued?.issuedOn ?? '—'} | ${issued?.rotatesOn ?? '—'} | ${tool.accessType} | ${role.accountsCovered} |`;
+      }),
       '',
       '## Example trust policies',
       '',
@@ -379,6 +403,16 @@ export default function CrossAccountAccess() {
           `- **${finding.raisedOn} → ${finding.closedOn}** · ${tool?.name ?? finding.toolId} · ${getCustomerName(finding.customerId)}`,
           `  - Finding: ${finding.summary}`,
           `  - Closed by: ${finding.action}`
+        );
+      }
+      lines.push('');
+    }
+
+    if (retiredIds.length > 0) {
+      lines.push('## External IDs withdrawn', '');
+      for (const record of retiredIds) {
+        lines.push(
+          `- **${record.issuedOn} → ${record.retiredOn}** · ${getSaasTool(record.toolId)?.name ?? record.toolId} · ${getCustomerName(record.customerId)} — ${record.retiredReason}`
         );
       }
       lines.push('');
@@ -453,11 +487,11 @@ export default function CrossAccountAccess() {
               tooltip: 'Roles whose trust policy conditions sts:AssumeRole on an exact external ID, read from the policy itself.',
             },
             {
-              label: 'Verification overdue',
-              value: stats.staleVerification,
+              label: 'Rotation due',
+              value: `${stats.rotationDue} of ${stats.connections}`,
               icon: IconClockExclamation,
               color: 'text-amber-500',
-              tooltip: `Roles last checked by a named reviewer more than ${VERIFICATION_WINDOW_DAYS} days ago.`,
+              tooltip: `External IDs past their ${EXTERNAL_ID_STANDARD.rotationMonths} month rotation date, or roles not verified in ${VERIFICATION_WINDOW_DAYS} days (${stats.staleVerification}).`,
             },
           ].map((stat, i) => (
             <Tooltip key={stat.label} delayDuration={300}>
@@ -679,6 +713,38 @@ export default function CrossAccountAccess() {
                     </div>
                   );
                 })}
+                {retiredIds.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-sm font-semibold text-foreground mb-2">External IDs withdrawn</p>
+                    <div className="rounded-xl border border-border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead className="text-xs font-semibold uppercase">Tool</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase">Customer</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase">In force</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase">Withdrawn because</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {retiredIds.map(record => (
+                            <TableRow key={record.id} data-testid={`retired-${record.id}`}>
+                              <TableCell className="text-sm">{getSaasTool(record.toolId)?.name ?? record.toolId}</TableCell>
+                              <TableCell className="text-sm">{getCustomerName(record.customerId)}</TableCell>
+                              <TableCell className="font-mono text-[12px] whitespace-nowrap">
+                                {record.issuedOn} → {record.retiredOn}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{record.retiredReason}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Withdrawn values are never reissued. {EXTERNAL_ID_STANDARD.transport}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -701,15 +767,15 @@ export default function CrossAccountAccess() {
                 {[
                   {
                     title: 'One external ID per connection',
-                    body: 'Each customer gets a distinct secret for each tool, generated by us rather than by the vendor, and shared with the vendor out of band.',
+                    body: `Each customer gets a distinct ${EXTERNAL_ID_STANDARD.randomLength} character value for each tool. ${EXTERNAL_ID_STANDARD.note}`,
                   },
                   {
                     title: 'The role is the only door',
                     body: 'Vendors hold no IAM users and no long-lived keys in customer accounts. They call sts:AssumeRole from their own account and get short-lived credentials.',
                   },
                   {
-                    title: 'Rotated on offboarding',
-                    body: 'Removing a tool means deleting the role and retiring its external ID, so a leaked secret cannot be replayed later.',
+                    title: `Rotated every ${EXTERNAL_ID_STANDARD.rotationMonths} months`,
+                    body: 'Removing a tool means deleting the role and retiring its external ID, so a leaked value cannot be replayed later. The register keeps every value it has withdrawn.',
                   },
                 ].map(item => (
                   <div key={item.title} className="p-4 rounded-xl border border-border bg-background/50">
@@ -729,10 +795,11 @@ export default function CrossAccountAccess() {
                 <PolicyBlock
                   testId="button-copy-reference-policy"
                   policy={JSON.stringify(
-                    buildTrustPolicy(
-                      { ...getSaasTools()[0], name: 'Vendor', vendorAccountId: '<VENDOR_ACCOUNT_ID>' },
-                      '<EXTERNAL_ID>'
-                    ),
+                    buildTrustPolicy({
+                      sid: 'VendorCrossAccountAccess',
+                      vendorAccountId: '<VENDOR_ACCOUNT_ID>',
+                      externalId: '<EXTERNAL_ID>',
+                    }),
                     null,
                     2
                   )}
@@ -786,6 +853,16 @@ export default function CrossAccountAccess() {
                     { label: 'Role last used', value: openRow.role.roleLastUsed },
                     { label: 'Internal owner', value: openRow.tool.owner },
                     { label: 'Last verified', value: `${openRow.role.lastVerified} by ${openRow.role.verifiedBy}` },
+                    ...(() => {
+                      const issued = getExternalId(openRow.role.customerId, openRow.tool.id);
+                      const org = getCustomerAwsOrg(openRow.role.customerId);
+                      return [
+                        { label: 'External ID issued', value: issued ? `${issued.issuedOn} by ${issued.issuedBy}` : 'Not issued' },
+                        { label: 'Rotates on', value: issued ? `${issued.rotatesOn}${isRotationDue(issued) ? ' — overdue' : ''}` : '—' },
+                        { label: 'AWS organization', value: org?.organizationId ?? '—', mono: true },
+                        { label: 'Deployed by', value: org ? `${org.deployedBy} (${org.stackSetName})` : '—' },
+                      ];
+                    })(),
                   ].map(field => (
                     <div key={field.label} className="p-3 rounded-lg border border-border bg-background/50 min-w-0">
                       <p className="text-[11px] text-muted-foreground mb-0.5">{field.label}</p>
