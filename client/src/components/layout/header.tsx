@@ -33,6 +33,7 @@ import {
 } from '@tabler/icons-react';
 import type { Currency, DateRangePreset, Language } from '@shared/schema';
 import { AWSLogo, AzureLogo, GCPIcon } from '@/components/provider-logos';
+import { QucoonLogo } from '@/components/qucoon-logo';
 import huaweiLogo from '@assets/image_1764758201045.png';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -164,6 +165,12 @@ export function Header() {
       <div className="h-full px-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
+            {showCustomers && (
+              <>
+                <QucoonLogo className="h-7 w-auto" />
+                <div className="h-6 w-px bg-border" aria-hidden="true" />
+              </>
+            )}
             <ProviderLogo provider={selectedProvider} />
           </div>
 
