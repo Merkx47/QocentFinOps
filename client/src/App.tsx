@@ -15,6 +15,8 @@ import Recommendations from "@/pages/recommendations";
 import Tenants from "@/pages/tenants";
 import Customers from "@/pages/customers";
 import CrossAccountAccess from "@/pages/cross-account-access";
+import Tco from "@/pages/tco";
+import RateCards from "@/pages/rate-cards";
 import Budgets from "@/pages/budgets";
 import Allocation from "@/pages/allocation";
 import Reports from "@/pages/reports";
@@ -67,6 +69,8 @@ function DashboardRouter() {
       <Route path="/tenants" component={Tenants} />
       <Route path="/customers" component={Customers} />
       <Route path="/cross-account-access" component={CrossAccountAccess} />
+      <Route path="/tco" component={Tco} />
+      <Route path="/rate-cards" component={RateCards} />
       <Route path="/budgets" component={Budgets} />
       <Route path="/allocation" component={Allocation} />
       <Route path="/reports" component={Reports} />

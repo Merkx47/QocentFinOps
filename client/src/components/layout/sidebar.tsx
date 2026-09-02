@@ -21,6 +21,8 @@ import {
   IconTrash,
   IconBriefcase,
   IconShieldLock,
+  IconCalculator,
+  IconReceipt,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useFinOpsStore } from '@/lib/finops-store';
@@ -60,11 +62,25 @@ const intelligenceNavItems: NavItem[] = [
   { icon: IconBell, label: 'Notifications', href: '/notifications', badge: 3 },
 ];
 
-const secondaryNavItems: NavItem[] = [
+const baseSecondaryNavItems: NavItem[] = [
   { icon: IconTarget, label: 'Budgets', href: '/budgets' },
   { icon: IconWallet, label: 'Cost Allocation', href: '/allocation' },
   { icon: IconChartBar, label: 'Reports', href: '/reports' },
 ];
+
+function useSecondaryNavItems() {
+  const { selectedProvider } = useFinOpsStore();
+
+  return useMemo<NavItem[]>(() => [
+    ...baseSecondaryNavItems,
+    ...(supportsCustomers(selectedProvider)
+      ? [
+          { icon: IconCalculator, label: 'TCO Analysis', href: '/tco' },
+          { icon: IconReceipt, label: 'Rate Cards', href: '/rate-cards' },
+        ]
+      : []),
+  ], [selectedProvider]);
+}
 
 const baseGovernanceNavItems: NavItem[] = [
   { icon: IconTag, label: 'Tag Compliance', href: '/tagging' },
@@ -154,6 +170,7 @@ export function Sidebar() {
   const [location] = useLocation();
   const { sidebarCollapsed, setSidebarCollapsed } = useFinOpsStore();
   const mainNavItems = useNavItems();
+  const secondaryNavItems = useSecondaryNavItems();
   const governanceNavItems = useGovernanceNavItems();
 
   return (

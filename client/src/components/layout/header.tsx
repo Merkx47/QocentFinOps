@@ -1,6 +1,6 @@
 import { useFinOpsStore, formatCompactCurrency, applyProviderTheme } from '@/lib/finops-store';
 import { getOrgUnits, generateKPIs } from '@/lib/finops-data';
-import { getCustomers, supportsCustomers } from '@/lib/customers';
+import { useCustomers, supportsCustomers } from '@/lib/customers';
 import { getProviderConfig } from '@/lib/provider-config';
 import { Button } from '@/components/ui/button';
 import {
@@ -94,7 +94,7 @@ export function Header() {
   const [isDark, setIsDark] = useState(false);
   const config = getProviderConfig(selectedProvider);
   const orgUnits = useMemo(() => getOrgUnits(selectedProvider), [selectedProvider]);
-  const customers = useMemo(() => getCustomers(selectedProvider), [selectedProvider]);
+  const customers = useCustomers(selectedProvider);
   const showCustomers = supportsCustomers(selectedProvider);
 
   useEffect(() => {

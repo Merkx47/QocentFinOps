@@ -232,17 +232,19 @@ export function formatCurrency(amount: number, currency: Currency): string {
 
 export function formatCompactCurrency(amount: number, currency: Currency): string {
   const converted = convertCurrency(amount, currency);
+  const sign = converted < 0 ? '-' : '';
+  const size = Math.abs(converted);
 
-  if (converted >= 1000000) {
-    return `${currencySymbols[currency]}${(converted / 1000000).toFixed(1)}M`;
+  if (size >= 1000000) {
+    return `${sign}${currencySymbols[currency]}${(size / 1000000).toFixed(1)}M`;
   }
-  if (converted >= 1000) {
-    return `${currencySymbols[currency]}${(converted / 1000).toFixed(1)}K`;
+  if (size >= 1000) {
+    return `${sign}${currencySymbols[currency]}${(size / 1000).toFixed(1)}K`;
   }
 
   if (noDecimalCurrencies.includes(currency)) {
-    return `${currencySymbols[currency]}${Math.round(converted).toLocaleString()}`;
+    return `${sign}${currencySymbols[currency]}${Math.round(size).toLocaleString()}`;
   }
 
-  return `${currencySymbols[currency]}${converted.toFixed(2)}`;
+  return `${sign}${currencySymbols[currency]}${size.toFixed(2)}`;
 }

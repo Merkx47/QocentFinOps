@@ -1,3 +1,6 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { useMemo } from 'react';
 import type { CloudProvider } from './provider-config';
 
 export interface Customer {
@@ -11,13 +14,16 @@ export interface Customer {
   contactEmail: string;
   budget: number;
   efficiencyScore: number;
-  /** Share of the portfolio's AWS spend. Weights across all customers sum to 1. */
+  /**
+   * Share of the portfolio's AWS spend. The shipped customers sum to 1; an
+   * onboarded customer adds its own share on top, so the total can exceed 1.
+   */
   spendWeight: number;
   status: 'active' | 'inactive';
   onboardedAt: string;
 }
 
-const awsCustomers: Customer[] = [
+const shippedCustomers: Customer[] = [
   {
     id: 'cust-nibss',
     name: 'NIBSS',
@@ -80,13 +86,50 @@ const awsCustomers: Customer[] = [
   },
 ];
 
+/**
+ * Customers onboarded through the portal, kept alongside the ones the platform
+ * ships with so a new customer can be added without editing code.
+ */
+interface CustomerStore {
+  customCustomers: Customer[];
+  addCustomer: (customer: Customer) => void;
+  removeCustomer: (customerId: string) => void;
+}
+
+export const useCustomerStore = create<CustomerStore>()(
+  persist(
+    (set) => ({
+      customCustomers: [],
+      addCustomer: (customer) =>
+        set((state) => ({ customCustomers: [...state.customCustomers, customer] })),
+      removeCustomer: (customerId) =>
+        set((state) => ({ customCustomers: state.customCustomers.filter(c => c.id !== customerId) })),
+    }),
+    { name: 'qocent-customers', version: 1 }
+  )
+);
+
 /** Customers are an AWS-portal concept only. */
 export function getCustomers(provider: CloudProvider): Customer[] {
-  return provider === 'aws' ? awsCustomers : [];
+  if (provider !== 'aws') return [];
+  return [...shippedCustomers, ...useCustomerStore.getState().customCustomers];
+}
+
+/** Reactive form, so a customer added during the session appears straight away. */
+export function useCustomers(provider: CloudProvider): Customer[] {
+  const customCustomers = useCustomerStore(state => state.customCustomers);
+  return useMemo(
+    () => (provider === 'aws' ? [...shippedCustomers, ...customCustomers] : []),
+    [provider, customCustomers]
+  );
 }
 
 export function getCustomer(customerId: string): Customer | undefined {
-  return awsCustomers.find(c => c.id === customerId);
+  return getCustomers('aws').find(c => c.id === customerId);
+}
+
+export function isShippedCustomer(customerId: string): boolean {
+  return shippedCustomers.some(c => c.id === customerId);
 }
 
 export function supportsCustomers(provider: CloudProvider): boolean {

@@ -212,7 +212,8 @@ export function generateKPIs(tenantId: string | 'all', provider: CloudProvider =
   const totalBudget = isAll
     ? portfolioBudget
     : Math.round((orgUnits.find(u => u.id === tenantId)?.budget || 200000) * scope.weight);
-  const budgetUsed = (totalSpend / totalBudget) * 100;
+  // A customer onboarded without a budget would otherwise divide by zero.
+  const budgetUsed = totalBudget > 0 ? (totalSpend / totalBudget) * 100 : 0;
 
   const activeResources = Math.max(1, Math.floor((isAll ? 847 : 120 + rand() * 50) * scope.weight));
 

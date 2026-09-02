@@ -6,7 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFinOpsStore, formatCompactCurrency } from '@/lib/finops-store';
-import { getCustomers } from '@/lib/customers';
+import { useCustomers, supportsCustomers } from '@/lib/customers';
+import { NewCustomerDialog } from '@/components/new-customer-dialog';
 import { generateKPIs, generateServiceBreakdown, withCustomerScope } from '@/lib/finops-data';
 import {
   IconBriefcase,
@@ -36,7 +37,7 @@ export default function Customers() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const customers = useMemo(() => getCustomers(selectedProvider), [selectedProvider]);
+  const customers = useCustomers(selectedProvider);
 
   const summaries = useMemo(
     () =>
@@ -91,11 +92,16 @@ export default function Customers() {
               Cloud spend and optimization posture for every customer in the portfolio
             </p>
           </div>
-          {selectedCustomerId !== 'all' && (
-            <Button variant="outline" onClick={() => applyFilter('all')} data-testid="button-clear-customer">
-              Clear filter
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {selectedCustomerId !== 'all' && (
+              <Button variant="outline" onClick={() => applyFilter('all')} data-testid="button-clear-customer">
+                Clear filter
+              </Button>
+            )}
+            {supportsCustomers(selectedProvider) && (
+              <NewCustomerDialog onCreated={(customer) => applyFilter(customer.id)} />
+            )}
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 [&>*]:min-w-0">
@@ -200,7 +206,7 @@ export default function Customers() {
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">{customer.industry}</p>
                           </div>
                           <Badge variant="secondary" className="text-[11px] flex-shrink-0">
-                            {customer.accountCount} accounts
+                            {customer.accountCount} {customer.accountCount === 1 ? 'account' : 'accounts'}
                           </Badge>
                         </div>
 
@@ -220,9 +226,11 @@ export default function Customers() {
                         <div className="mb-3">
                           <div className="flex items-center justify-between text-[11px] mb-1.5">
                             <span className="text-muted-foreground">Budget used</span>
-                            <span className="font-mono font-medium">{kpis.budgetUsed.toFixed(1)}%</span>
+                            <span className="font-mono font-medium">
+                              {customer.budget > 0 ? `${kpis.budgetUsed.toFixed(1)}%` : 'No budget set'}
+                            </span>
                           </div>
-                          <Progress value={budgetUsage} className="h-1.5" />
+                          <Progress value={customer.budget > 0 ? budgetUsage : 0} className="h-1.5" />
                         </div>
 
                         <div className="mb-3">
